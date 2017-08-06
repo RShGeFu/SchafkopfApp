@@ -1,0 +1,2 @@
+# SchafkopfApp
+Schafkopfrunden mitschreiben

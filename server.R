@@ -1,18 +1,29 @@
 # ----------------------------------------------------------------------------------------------------------
-# Schafkopf - App
+# 
+# Schafkopf - App / Mitgezählt...
+#
 # Rechnen leicht gemacht
+#
 # ----------------------------------------------------------------------------------------------------------
 
+# --- Benötigte Packages -----------------------------------------------------------------------------------
 library(shiny)
 
+# --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
   
   # --- Bei Sessionende ... --------------------------------------------------------------------------------
   session$onSessionEnded(function() {
-    # ggf. nochmaliges Speichern
+    # TODO: ggf. nochmaliges Speichern
     print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
     stopApp()
   })
+  
+  output$Spieler1 <- renderText({ paste("Gerhard") })
+  output$Spieler2 <- renderText({ paste("Martin") })
+  output$Spieler3 <- renderText({ paste("Matthias") })
+  output$Spieler4 <- renderText({ paste("Tobias") })
+  
   
   # --- Programmtests ... ----------------------------------------------------------------------------------
   

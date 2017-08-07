@@ -3,6 +3,10 @@
 # Schafkopf - App / Mitgezählt...
 #
 # Rechnen leicht gemacht
+# 
+# (c) by Gerhard Füchsl 
+#
+# Version 1.0
 #
 # ----------------------------------------------------------------------------------------------------------
 
@@ -17,22 +21,28 @@ shinyUI(fluidPage(
   conditionalPanel("true",
   
   # --- Titel und Gruppenauswahl ---------------------------------------------------------------------------
-  wellPanel(
-    fluidRow(
-      column(3, h1("Schafkopf - mitgezählt ...")),
-      column(2, selectInput("gruppeWaehlen", "Schafkopfrunde", c("A", "B", "C")) ),
-      column(6),
-      column(1, actionButton("neueGruppe","Neue Runde", width = 130),
-                actionButton("loescheGruppe", "Runde löschen", width = 130))
-    )
-  ),
+  fluidRow(
+    # --- Titel --------------------------------------------------------------------------------------------
+    column(3, hr(), titlePanel("Schafkopf - mitgezählt ..."), hr()),
+    
+    # --- Gruppe und Tarife --------------------------------------------------------------------------------
+    column(9, wellPanel(
+                fluidRow(
+                  column(4, selectInput("gruppeWaehlen", "Schafkopfrunde", c("A", "B", "C")) ),
+                  column(1, numericInput("tarifSpiel", "Tarif Spiel", 10)),
+                  column(1, numericInput("tarifSolo", "Tarif Solo", 20)),
+                  column(4),
+                  column(2, actionButton("neueGruppe","Neue Schafkopfrunde", width = 200),
+                            actionButton("loescheGruppe", "Schafkkopfrunde löschen", width = 200))
+    ))
+  )),
   
   # --- Spielart und Spieler -------------------------------------------------------------------------------
   sidebarLayout(
     # --- Spielart und Spieler -----------------------------------------------------------------------------
     sidebarPanel(
               # --- Spielart -------------------------------------------------------------------------------
-              wellPanel(),
+              wellPanel(radioButtons("spielart", "Spiel", c("Sauspiel","Solo"))),
               # --- Spieler --------------------------------------------------------------------------------
               wellPanel(fluidRow(
                           column(6, textOutput("Spieler1")),

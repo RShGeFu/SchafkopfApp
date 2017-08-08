@@ -32,48 +32,66 @@ shinyUI(fluidPage(
                   column(1, numericInput("tarifSpiel", "Tarif Spiel", 10)),
                   column(1, numericInput("tarifSolo", "Tarif Solo", 20)),
                   column(4),
-                  column(2, actionButton("neueGruppe","Neue Schafkopfrunde", width = 200),
-                            actionButton("loescheGruppe", "Schafkkopfrunde löschen", width = 200))
+                  column(2, actionButton("neueGruppe","Neue Schafkopfrunde", width = "100%"), br(), br(),
+                            actionButton("loescheGruppe", "Schafkkopfrunde löschen", width = "100%"))
     ))
   )),
   
-  # --- Spielart und Spieler -------------------------------------------------------------------------------
-  sidebarLayout(
-    # --- Spielart und Spieler -----------------------------------------------------------------------------
-    sidebarPanel(
+  # --- Spielart und Spieler -----------------------------------------------------------------------------
+  inputPanel(
               # --- Spielart -------------------------------------------------------------------------------
-              wellPanel(radioButtons("spielart", "Spiel", c("Sauspiel","Solo"))),
+              wellPanel(radioButtons("spielart1", "Spiel", c("Sauspiel","Solo"))),
+              
+              # --- Spielart -------------------------------------------------------------------------------
+              wellPanel(selectInput("Spielart2", "Spiel", c("Eichel", "Gras", "Herz", "Schelln"))),
+              
               # --- Spieler --------------------------------------------------------------------------------
-              wellPanel(fluidRow(
-                          column(6, textOutput("Spieler1")),
-                          column(3, checkboxInput("sp1", "Spieler")), 
-                          column(3, numericInput("pkt1", "Punkte", 0))
-                        )), 
+              wellPanel(h4(strong(textOutput("Spieler1"))),
+                        fluidRow(
+                          column(6, checkboxInput("sp1", "Spieler")), 
+                          column(6, numericInput("pkt1", NULL, 0))
+                        )
+              ), 
+              
               # --- Spieler --------------------------------------------------------------------------------
-              wellPanel(fluidRow(
-                          column(6, textOutput("Spieler2")),
-                          column(3, checkboxInput("sp2", "Spieler")), 
-                          column(3, numericInput("pkt2", "Punkte", 0))
-                        )),
+              wellPanel(h4(strong(textOutput("Spieler2"))),
+                        fluidRow(
+                          column(6, checkboxInput("sp2", "Spieler")), 
+                          column(6, numericInput("pkt2", NULL, 0))
+                        )
+              ),
+              
               # --- Spieler --------------------------------------------------------------------------------
-              wellPanel(fluidRow(
-                          column(6, textOutput("Spieler3")),
-                          column(3, checkboxInput("sp3", "Spieler")),
-                          column(3, numericInput("pkt3", "Punkte", 0))
-              )), 
+              wellPanel(h4(strong(textOutput("Spieler3"))),
+                        fluidRow(
+                          column(6, checkboxInput("sp3", "Spieler")), 
+                          column(6, numericInput("pkt3", NULL, 0))
+                        )
+              ), 
+              
               # --- Spieler --------------------------------------------------------------------------------
+              wellPanel(h4(strong(textOutput("Spieler4"))),
+                        fluidRow(
+                          column(6, checkboxInput("sp4", "Spieler")), 
+                          column(6, numericInput("pkt4", NULL, 0))
+                        )
+              ),
+              
+              # --- Doppelungen ----------------------------------------------------------------------------
               wellPanel(fluidRow(
-                          column(6, textOutput("Spieler4")),
-                          column(3, checkboxInput("sp4", "Spieler")), 
-                          column(3, numericInput("pkt4", "Punkte", 0))
-              )),
+                          column(6, numericInput("anzahlGelegt", "Gelegt", 0)),
+                          column(6, numericInput("anzahlLaufende", "Laufende", 0))
+                        )
+              ),
+              
               # --- Spiel dokumentieren --------------------------------------------------------------------
-              actionButton("spielAufschreiben", "Aufschreiben", width = "100%"),
-              # --- Breite Sidebar -------------------------------------------------------------------------
-              width = 3),
+              wellPanel(actionButton("spielAufschreiben", "Aufschreiben", width = "100%"), br(), br(),
+                        actionButton("letztesKorrigieren", "Letztes Spiel korrigieren", width = "100%")
+              )
+    ),
+  
     # --- Ausgabe der Spieldaten ---------------------------------------------------------------------------
     mainPanel(actionButton("asdf", "asdf"))
-  )
   
   
   ),

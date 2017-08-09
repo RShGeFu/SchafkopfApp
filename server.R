@@ -13,6 +13,11 @@
 # --- Benötigte Packages -----------------------------------------------------------------------------------
 library(shiny)
 
+# --- Allgemeine Variablen ---------------------------------------------------------------------------------
+spiele <- list(c("Eichel", "Gras", "Herz", "Schelln"), 
+               c("Eichel", "Gras", "Herz", "Schelln", "Wenz", "Farbwenz", "Geier", "Bettler", "Ramsch"))
+tarif <- c(10, 20)
+
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
   
@@ -23,10 +28,28 @@ shinyServer(function(input, output, session) {
     stopApp()
   })
   
+  # --- Spieler angeben, hier Testbeschriftung -------------------------------------------------------------
   output$Spieler1 <- renderText({ paste("Gerhard") })
   output$Spieler2 <- renderText({ paste("Martin") })
   output$Spieler3 <- renderText({ paste("Matthias") })
   output$Spieler4 <- renderText({ paste("Tobias") })
+  
+  # --- Einstellen -----------------------------------------------------------------------------------------
+  
+  # ... der Spielart
+  updateSelectInput(session, "spielArt2", choices = spiele[[1]])
+  
+  # ... der Tarife
+  updateNumericInput(session, "tarifSpiel", value = tarif[1])
+  updateNumericInput(session, "tarifSolo", value = tarif[2])
+  
+  # --- Events ---------------------------------------------------------------------------------------------
+  
+  # Spielliste einstellen
+  observeEvent(input$spielArt1, {
+    updateSelectInput(session, "spielArt2", choices = spiele[[as.numeric(input$spielArt1)]])
+  })
+  
   
   
   # --- Programmtests ... ----------------------------------------------------------------------------------

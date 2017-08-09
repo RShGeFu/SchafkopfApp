@@ -29,21 +29,28 @@ shinyUI(fluidPage(
     column(9, wellPanel(
                 fluidRow(
                   column(4, selectInput("gruppeWaehlen", "Schafkopfrunde", c("A", "B", "C")) ),
-                  column(1, numericInput("tarifSpiel", "Tarif Spiel", 10)),
-                  column(1, numericInput("tarifSolo", "Tarif Solo", 20)),
+                  column(1, numericInput("tarifSpiel", "Tarif Spiel", NULL)),
+                  column(1, numericInput("tarifSolo", "Tarif Solo", NULL)),
                   column(4),
                   column(2, actionButton("neueGruppe","Neue Schafkopfrunde", width = "100%"), br(), br(),
                             actionButton("loescheGruppe", "Schafkkopfrunde löschen", width = "100%"))
     ))
   )),
   
-  # --- Spielart und Spieler -----------------------------------------------------------------------------
+  # --- Spielart und Spieler -------------------------------------------------------------------------------
   inputPanel(
               # --- Spielart -------------------------------------------------------------------------------
-              wellPanel(radioButtons("spielart1", "Spiel", c("Sauspiel","Solo"))),
+              wellPanel(
+                  fluidRow(
+                    column(6, radioButtons("spielArt1", "Spiel", choiceNames = c("Sauspiel", "Solo"), choiceValues = c(1, 2))),
+                    conditionalPanel("input.spielArt1 == 2",
+                      column(6, radioButtons("soloArt", "Solo", choiceNames = c("Normal", "Tout", "Si"), choiceValues = c(1, 2, 4)))
+                    )
+                  )
+              ),
               
               # --- Spielart -------------------------------------------------------------------------------
-              wellPanel(selectInput("Spielart2", "Spiel", c("Eichel", "Gras", "Herz", "Schelln"))),
+              wellPanel(selectInput("spielArt2", "Spiel", NULL)),
               
               # --- Spieler --------------------------------------------------------------------------------
               wellPanel(h4(strong(textOutput("Spieler1"))),

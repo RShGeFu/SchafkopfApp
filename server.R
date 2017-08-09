@@ -1,4 +1,4 @@
-# ----------------------------------------------------------------------------------------------------------
+# ##########################################################################################################
 # 
 # Schafkopf - App / Mitgezählt...
 #
@@ -8,15 +8,16 @@
 #
 # Version 1.0
 #
-# ----------------------------------------------------------------------------------------------------------
+# ##########################################################################################################
+
 
 # --- Benötigte Packages -----------------------------------------------------------------------------------
 library(shiny)
 
 # --- Allgemeine Variablen ---------------------------------------------------------------------------------
+
 spiele <- list(c("Eichel", "Gras", "Herz", "Schelln"), 
                c("Eichel", "Gras", "Herz", "Schelln", "Wenz", "Farbwenz", "Geier", "Bettler", "Ramsch"))
-tarif <- c(10, 20)
 
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
@@ -28,11 +29,20 @@ shinyServer(function(input, output, session) {
     stopApp()
   })
   
-  # --- Spieler angeben, hier Testbeschriftung -------------------------------------------------------------
-  output$Spieler1 <- renderText({ paste("Gerhard") })
-  output$Spieler2 <- renderText({ paste("Martin") })
-  output$Spieler3 <- renderText({ paste("Matthias") })
-  output$Spieler4 <- renderText({ paste("Tobias") })
+  # --- Sessionbezogene Variablen --------------------------------------------------------------------------
+  spieler <- c("Gerhard", "Martin", "Matthias", "Tobias")
+  tarif <- c(10, 20)
+
+  # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
+  renderSpieler <- function() {
+    output$Spieler1 <- renderText({ paste(spieler[1]) })
+    output$Spieler2 <- renderText({ paste(spieler[2]) })
+    output$Spieler3 <- renderText({ paste(spieler[3]) })
+    output$Spieler4 <- renderText({ paste(spieler[4]) })    
+  }
+  
+  # --- Spieler angeben ------------------------------------------------------------------------------------
+  renderSpieler()
   
   # --- Einstellen -----------------------------------------------------------------------------------------
   

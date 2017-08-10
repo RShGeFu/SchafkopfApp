@@ -94,13 +94,13 @@ shinyUI(fluidPage(
               
               # --- Spiel dokumentieren --------------------------------------------------------------------
               wellPanel(actionButton("spielAufschreiben", "Aufschreiben", width = "100%"), br(), br(),
-                        actionButton("letztesKorrigieren", "Letztes Spiel korrigieren", width = "100%")
+                        actionButton("letztesKorrigieren", "Letztes Spiel korrigieren", width = "100%"),
+                        checkboxInput("testPanel01", "TP01")
               )
     ),
   
     # --- Ausgabe der Spieldaten ---------------------------------------------------------------------------
-    mainPanel(actionButton("asdf", "asdf"))
-  
+  hr()
   
   ),
   # --- Ende User-Panel ------------------------------------------------------------------------------------
@@ -109,11 +109,18 @@ shinyUI(fluidPage(
   # --- Test-Panels ----------------------------------------------------------------------------------------
   # Hier können verschiedene Outputs getestet werden
   
-  # t001: Ausgabe der Umwandlungen
-  conditionalPanel("false",
+  
+  conditionalPanel("input.testPanel01",
+                   
+                   # t001: Ausgabe der Umwandlungen
                     actionButton("testBerechnung", "Berechne"),
                     textOutput("ergebnisBerechnung"),
-                    textOutput("ergebnisBerechnung2")
+                    textOutput("ergebnisBerechnung2"),
+                  
+                   # t002: Ausgabe der Tests bzgl. der Spielart-Auswahl und der Rückumstellungen
+                    hr(),
+                    actionButton("testSpieleRB", "Teste Radiobuttons Spiele"),
+                    textOutput("ergebnisTestRB")
   )
   # --- Ende Test-Panels -----------------------------------------------------------------------------------
 ))

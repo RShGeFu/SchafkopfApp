@@ -34,15 +34,19 @@ shinyServer(function(input, output, session) {
   tarif <- c(10, 20)
 
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
-  renderSpieler <- function() {
+  renderPlayer <- function() {
     output$Spieler1 <- renderText({ paste(spieler[1]) })
     output$Spieler2 <- renderText({ paste(spieler[2]) })
     output$Spieler3 <- renderText({ paste(spieler[3]) })
     output$Spieler4 <- renderText({ paste(spieler[4]) })    
   }
   
+  checkNumberOfPlayers <- function() {
+    
+  }
+  
   # --- Spieler angeben ------------------------------------------------------------------------------------
-  renderSpieler()
+  renderPlayer()
   
   # --- Einstellen -----------------------------------------------------------------------------------------
   
@@ -58,7 +62,9 @@ shinyServer(function(input, output, session) {
   # Spielliste einstellen
   observeEvent(input$spielArt1, {
     updateSelectInput(session, "spielArt2", choices = spiele[[as.numeric(input$spielArt1)]])
+    updateRadioButtons(session, "soloArt", selected = 1)
   })
+  
   
   
   
@@ -78,6 +84,14 @@ shinyServer(function(input, output, session) {
     print(t0)
     print(t1)
     print(t2)
+  })
+  
+  # t002:
+  t_var002 <- NULL
+  observeEvent(input$testSpieleRB, {
+    t_var002 <<- c(t_var002, input$soloArt)
+    updateRadioButtons(session, "spielArt1", selected = input$testSpieleRB %% 2 + 1)
+    output$ergebnisTestRB <- renderText({ paste(t_var002) })
   })
   
 })

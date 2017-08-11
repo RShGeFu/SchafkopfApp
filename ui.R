@@ -19,6 +19,7 @@ shinyUI(fluidPage(
   
   # --- User-Panel -----------------------------------------------------------------------------------------
   # Hier ist der für den User angezeigte Bereich
+  
   conditionalPanel("true",
   
   # --- Titel und Gruppenauswahl ---------------------------------------------------------------------------
@@ -87,8 +88,8 @@ shinyUI(fluidPage(
               
               # --- Doppelungen ----------------------------------------------------------------------------
               wellPanel(fluidRow(
-                          column(6, numericInput("anzahlGelegt", "Gelegt", 0)),
-                          column(6, numericInput("anzahlLaufende", "Laufende", 0))
+                          column(7, numericInput("anzahlGelegt", "Legen/Spritzen", 0)),
+                          column(5, numericInput("anzahlLaufende", "Laufende", 0))
                         )
               ),
               
@@ -103,12 +104,12 @@ shinyUI(fluidPage(
   hr()
   
   ),
+  
   # --- Ende User-Panel ------------------------------------------------------------------------------------
   
   
   # --- Test-Panels ----------------------------------------------------------------------------------------
   # Hier können verschiedene Outputs getestet werden
-  
   
   conditionalPanel("input.testPanel01",
                    
@@ -122,5 +123,6 @@ shinyUI(fluidPage(
                     actionButton("testSpieleRB", "Teste Radiobuttons Spiele"),
                     textOutput("ergebnisTestRB")
   )
+  
   # --- Ende Test-Panels -----------------------------------------------------------------------------------
 ))

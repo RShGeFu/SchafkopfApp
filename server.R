@@ -32,16 +32,54 @@ shinyServer(function(input, output, session) {
   # --- Sessionbezogene Variablen --------------------------------------------------------------------------
   spieler <- c("Gerhard", "Martin", "Matthias", "Tobias")
   tarif <- c(10, 20)
+  punkte <- NULL
 
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
   renderPlayer <- function() {
     output$Spieler1 <- renderText({ paste(spieler[1]) })
     output$Spieler2 <- renderText({ paste(spieler[2]) })
     output$Spieler3 <- renderText({ paste(spieler[3]) })
-    output$Spieler4 <- renderText({ paste(spieler[4]) })    
+    output$Spieler4 <- renderText({ paste(spieler[4]) }) 
+  }
+  
+  resetPunkte <- function() {
+    
+  }
+  
+  getParter <- function() {
+    
   }
   
   checkNumberOfPlayers <- function() {
+    
+  }
+  
+  checkPoints <- function() {
+    
+  }
+  
+  is.Schneider <- function() {
+    
+  }
+  
+  is.Schwarz <- function() {
+    
+  }
+  
+  sumPoints <- function(punkteAllerSpieler) {
+    pkt <- which(punkteAllerSpieler == 0)                           # Bei welchem Spieler ist noch 0 Pkt eingetragen?
+    if (length(pkt) < 2) {                                          # Ist nur mehr bei einem Spieler kein Ergebnis
+      punkte[pkt] <- 120 - sum(punkte)                              # eingetragen, dann berechne es 
+      numInp <- c("pkt1", "pkt2", "pkt3", "pkt4")                   # suche dir aus allen Spielern das richtige Feld
+      updateNumericInput(session, numInp[pkt], value = punkte[pkt]) # heraus und trage das Ergebnis ein
+    }
+  }
+  
+  calculateTarif <- function() {
+    
+  }
+  
+  findTheWinner <- function() {
     
   }
   
@@ -62,10 +100,29 @@ shinyServer(function(input, output, session) {
   # Spielliste einstellen
   observeEvent(input$spielArt1, {
     updateSelectInput(session, "spielArt2", choices = spiele[[as.numeric(input$spielArt1)]])
-    updateRadioButtons(session, "soloArt", selected = 1)
+    updateRadioButtons(session, "soloArt", selected = 1)    # Wieder zurückstellen auf den Basistarif
   })
   
+  # Punkte in die Berechnungsliste eintragen
+  observeEvent(input$pkt1, {
+    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)  
+    sumPoints(punkte)
+  })
   
+  observeEvent(input$pkt2, {
+    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
+    sumPoints(puntke)
+  })
+  
+  observeEvent(input$pkt3, {
+    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
+    sumPoints(punkte)
+  })
+  
+  observeEvent(input$pkt4, {
+    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
+    sumPoints(punkte)
+  })
   
   
   # --- Programmtests ... ----------------------------------------------------------------------------------

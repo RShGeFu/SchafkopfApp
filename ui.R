@@ -121,7 +121,12 @@ shinyUI(fluidPage(
                    # t002: Ausgabe der Tests bzgl. der Spielart-Auswahl und der Rückumstellungen
                     hr(),
                     actionButton("testSpieleRB", "Teste Radiobuttons Spiele"),
-                    textOutput("ergebnisTestRB")
+                    textOutput("ergebnisTestRB"),
+                   
+                   # t003: Button-Klick -> füllt 3x Punkte aus, 4. wird berechnet
+                   hr(),
+                   actionButton("testSumPoints", "Teste Punktesummen"),
+                   textOutput("ergebnisAusgewaehlt")
   )
   
   # --- Ende Test-Panels -----------------------------------------------------------------------------------

@@ -33,6 +33,7 @@ shinyServer(function(input, output, session) {
   spieler <- c("Gerhard", "Martin", "Matthias", "Tobias")
   tarif <- c(10, 20)
   punkte <- NULL
+  hatGespielt <- NULL
 
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
   renderPlayer <- function() {
@@ -111,7 +112,7 @@ shinyServer(function(input, output, session) {
   
   observeEvent(input$pkt2, {
     punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
-    sumPoints(puntke)
+    sumPoints(punkte)
   })
   
   observeEvent(input$pkt3, {
@@ -149,6 +150,22 @@ shinyServer(function(input, output, session) {
     t_var002 <<- c(t_var002, input$soloArt)
     updateRadioButtons(session, "spielArt1", selected = input$testSpieleRB %% 2 + 1)
     output$ergebnisTestRB <- renderText({ paste(t_var002) })
+  })
+  
+  # t003:
+  observeEvent(input$testSumPoints, {
+    p <- input$testSumPoints
+    punkteInput <- c("pkt1", "pkt2", "pkt3", "pkt4")
+    
+    ausgewaehlt <- sample(punkteInput, 1)
+    nichtAusgewaehlt <- punkteInput[punkteInput!=ausgewaehlt]
+    
+    updateNumericInput(session, ausgewaehlt, value = 0)
+    updateNumericInput(session, nichtAusgewaehlt[1], value = p)
+    updateNumericInput(session, nichtAusgewaehlt[2], value = p*2)
+    updateNumericInput(session, nichtAusgewaehlt[3], value = p*4)
+    
+    output$ergebnisAusgewaehlt <- renderText({ paste(ausgewaehlt) })
   })
   
 })

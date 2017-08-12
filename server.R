@@ -60,6 +60,10 @@ shinyServer(function(input, output, session) {
     }
   }
   
+  checkPoints <- function() {
+    return(sum(c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)) == 120)
+  }
+  
   getSpieler <- function() {
     partner <- c(input$sp1, input$sp2, input$sp3, input$sp4)  # Nimm alle Spieler und ...
     spielerPartner <- which(partner == TRUE)                  # ... suche die Spieler!
@@ -90,7 +94,7 @@ shinyServer(function(input, output, session) {
   }
   
   calculatePunkte <- function() {
-    ergebnis <- c(0, 0)
+    ergebnis <- c(-1, -1)
     if (checkSpielerZahl()) {                                 # Wenn die Spielerzahl stimmt ...
       p <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)  # ... nimm alle Spieler...
       pktSpieler <- sum(p[getSpieler()])                      # ... summiere die Punkte der Spieler...
@@ -101,11 +105,11 @@ shinyServer(function(input, output, session) {
   }
   
   is.Schneider <- function(punkte = calculatePunkte()) {
-    return(punkte < 30)
+    return(length(punkte[punkte < 30]) > 0)
   }
   
   is.Schwarz <- function(punkte = calculatePunkte()) {
-    return(punkte < 1)
+    return(length(punkte[punkte < 1]) > 0)
   }
   
 
@@ -113,8 +117,15 @@ shinyServer(function(input, output, session) {
     
   }
   
-  findTheWinner <- function() {
-    
+  findWinner <- function() {
+    # update der Spieler/Nichtspieler
+    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
+    pkt <- calculatePunkte()
+    print(pkt)
+    if (pkt[1] > -1 & pkt[2] > -1 & checkPoints())
+      hatGespielt <<- hatGespielt * ifelse(pkt[1] < 61, -1, 1)
+    else
+      hatGespielt <<- c(0,0,0,0)
   }
   
   # --- Spieler angeben ------------------------------------------------------------------------------------
@@ -156,23 +167,6 @@ shinyServer(function(input, output, session) {
   observeEvent(input$pkt4, {
     punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
     sumPoints(punkte)
-  })
-  
-  # spieler anhaken und hinterlegen
-  observeEvent(input$sp1, {
-    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
-  })
-  
-  observeEvent(input$sp2, {
-    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
-  })
-  
-  observeEvent(input$sp3, {
-    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
-  })
-  
-  observeEvent(input$sp4, {
-    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
   })
   
   
@@ -234,7 +228,14 @@ shinyServer(function(input, output, session) {
       output$ergebnisNichtSpieler <- renderText({ paste(erg[2]) })
       output$ergebnisSchneider <- renderText({ paste(is.Schneider()) })
       output$ergebnisSchwarz <- renderText({ paste(is.Schwarz()) })
+      output$ergebnisCheckPoints <- renderText({ paste(checkPoints()) })
     }
+  })
+  
+  # t006:
+  observeEvent(input$testFindWinner, {
+    findWinner()
+    output$ergebnisFindWinner <- renderText({ paste(hatGespielt) })
   })
   
 })

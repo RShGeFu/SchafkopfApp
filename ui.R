@@ -45,7 +45,7 @@ shinyUI(fluidPage(
               wellPanel(
                   fluidRow(
                     column(6, radioButtons("spielArt1", "Spiel", choiceNames = c("Sauspiel", "Solo"), choiceValues = c(1, 3), selected = 1)),
-                    conditionalPanel("input.spielArt1 == 2",
+                    conditionalPanel("input.spielArt1 == 3",
                       column(6, radioButtons("soloArt", "Solo", choiceNames = c("Normal", "Tout", "Si"), choiceValues = c(1, 2, 4)))
                     )
                   )
@@ -58,7 +58,7 @@ shinyUI(fluidPage(
               wellPanel(h4(strong(textOutput("Spieler1"))),
                         fluidRow(
                           column(6, checkboxInput("sp1", "Spieler")), 
-                          column(6, numericInput("pkt1", NULL, 0))
+                          column(6, numericInput("pkt1", NULL, 0, min = 0, max = 120))
                         )
               ), 
               
@@ -66,7 +66,7 @@ shinyUI(fluidPage(
               wellPanel(h4(strong(textOutput("Spieler2"))),
                         fluidRow(
                           column(6, checkboxInput("sp2", "Spieler")), 
-                          column(6, numericInput("pkt2", NULL, 0))
+                          column(6, numericInput("pkt2", NULL, 0, min = 0, max = 120))
                         )
               ),
               
@@ -74,7 +74,7 @@ shinyUI(fluidPage(
               wellPanel(h4(strong(textOutput("Spieler3"))),
                         fluidRow(
                           column(6, checkboxInput("sp3", "Spieler")), 
-                          column(6, numericInput("pkt3", NULL, 0))
+                          column(6, numericInput("pkt3", NULL, 0, min = 0, max = 120))
                         )
               ), 
               
@@ -82,7 +82,7 @@ shinyUI(fluidPage(
               wellPanel(h4(strong(textOutput("Spieler4"))),
                         fluidRow(
                           column(6, checkboxInput("sp4", "Spieler")), 
-                          column(6, numericInput("pkt4", NULL, 0))
+                          column(6, numericInput("pkt4", NULL, 0, min = 0, max = 120))
                         )
               ),
               
@@ -130,16 +130,23 @@ shinyUI(fluidPage(
                    
                    # t004: Checkbox-Klick -> zeigt die angehakten Spieler
                    hr(),
-                   checkboxInput("testCheckAnzahlSpieler", "Teste angehkate Spieler"),
+                   actionButton("testCheckAnzahlSpieler", "Teste angehkate Spieler"),
                    textOutput("ergebnisAngehakteSpieler"),
                    
                    # t005: Button-Klick -> füllt 3x Punkte aus, 4. wird berechnet
                    hr(),
-                   checkboxInput("testCalculatePunkte", "Teste Punkte Spieler/NichtSpieler"),
+                   actionButton("testCalculatePunkte", "Teste Punkte Spieler/NichtSpieler/SChneider/Schwarz"),
                    textOutput("ergebnisSpieler"),
                    textOutput("ergebnisNichtSpieler"),
                    textOutput("ergebnisSchneider"),
-                   textOutput("ergebnisSchwarz")
+                   textOutput("ergebnisSchwarz"),
+                   textOutput("ergebnisCheckPoints"),
+                   
+                   # t006: Button-Klick -> zeigt den aktuellen Stand der Gewinner an mit dem Faktor, mit der 
+                   #       Tarif verrechnet wird
+                   hr(),
+                   actionButton("testFindWinner", "Zeige Gewinner - Verrechnungsfaktor"),
+                   textOutput("ergebnisFindWinner")
   )
   
   # --- Ende Test-Panels -----------------------------------------------------------------------------------

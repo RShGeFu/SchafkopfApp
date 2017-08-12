@@ -16,7 +16,8 @@ library(shiny)
 
 # --- Allgemeine Variablen ---------------------------------------------------------------------------------
 
-spiele <- list(c("Eichel", "Gras", "Herz", "Schelln"), 
+spiele <- list(c("Eichel", "Gras", "Herz", "Schelln"),
+               0, # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
                c("Eichel", "Gras", "Herz", "Schelln", "Wenz", "Farbwenz", "Geier", "Bettler", "Ramsch"))
 
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
@@ -31,7 +32,10 @@ shinyServer(function(input, output, session) {
   
   # --- Sessionbezogene Variablen --------------------------------------------------------------------------
   spieler <- c("Gerhard", "Martin", "Matthias", "Tobias")
-  tarif <- c(10, 20)
+  tarif <- c(10, 
+             0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
+             20)
+  
   punkte <- NULL
   hatGespielt <- NULL
 
@@ -43,27 +47,7 @@ shinyServer(function(input, output, session) {
     output$Spieler4 <- renderText({ paste(spieler[4]) }) 
   }
   
-  resetPunkte <- function() {
-    
-  }
-  
-  getParter <- function() {
-    
-  }
-  
-  checkNumberOfPlayers <- function() {
-    
-  }
-  
-  checkPoints <- function() {
-    
-  }
-  
-  is.Schneider <- function() {
-    
-  }
-  
-  is.Schwarz <- function() {
+  reset <- function() {
     
   }
   
@@ -76,7 +60,56 @@ shinyServer(function(input, output, session) {
     }
   }
   
-  calculateTarif <- function() {
+  getSpieler <- function() {
+    partner <- c(input$sp1, input$sp2, input$sp3, input$sp4)  # Nimm alle Spieler und ...
+    spielerPartner <- which(partner == TRUE)                  # ... suche die Spieler!
+    return(spielerPartner)
+  }
+  
+  getNichtSpieler <- function() {
+    partner <- c(input$sp1, input$sp2, input$sp3, input$sp4)  # Nimm alle Spieler und ...
+    nichtSpielerPartner <- which(partner == FALSE)            # ... und suche die Nicht-Spieler
+    return(nichtSpielerPartner)
+  }
+
+  checkSpielerZahl <- function() {
+    sp <- c(input$sp1, input$sp2, input$sp3, input$sp4)       # Nimm alle Spieler...
+    return(
+      switch(input$spielArt1,                                 # ...und je nach nach Spielart
+             "1" = {
+                richtigeAnzahl <- length(which(sp)) == 2      # ... gib an, ob 2 Spieler...
+             },
+             "3" = {
+                richtigeAnzahl <- length(which(sp)) == 1      # ... oder 1 Spieler richtig ist
+            },
+            default = {
+                richtigeAnzahl <- FALSE
+            }
+      )
+    )
+  }
+  
+  calculatePunkte <- function() {
+    ergebnis <- c(0, 0)
+    if (checkSpielerZahl()) {                                 # Wenn die Spielerzahl stimmt ...
+      p <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)  # ... nimm alle Spieler...
+      pktSpieler <- sum(p[getSpieler()])                      # ... summiere die Punkte der Spieler...
+      pktNichtSpieler <- sum(p[getNichtSpieler()])            # ... und summiere die Punkte der Nicht-Spieler ...
+      ergebnis <- c(pktSpieler, pktNichtSpieler)              # ... und bastle eine Ergebnisvektor
+    }
+    return(ergebnis)
+  }
+  
+  is.Schneider <- function(punkte = calculatePunkte()) {
+    return(punkte < 30)
+  }
+  
+  is.Schwarz <- function(punkte = calculatePunkte()) {
+    return(punkte < 1)
+  }
+  
+
+  calculateProfit <- function() {
     
   }
   
@@ -94,7 +127,7 @@ shinyServer(function(input, output, session) {
   
   # ... der Tarife
   updateNumericInput(session, "tarifSpiel", value = tarif[1])
-  updateNumericInput(session, "tarifSolo", value = tarif[2])
+  updateNumericInput(session, "tarifSolo", value = tarif[3])
   
   # --- Events ---------------------------------------------------------------------------------------------
   
@@ -125,8 +158,25 @@ shinyServer(function(input, output, session) {
     sumPoints(punkte)
   })
   
+  # spieler anhaken und hinterlegen
+  observeEvent(input$sp1, {
+    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
+  })
   
-  # --- Programmtests ... ----------------------------------------------------------------------------------
+  observeEvent(input$sp2, {
+    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
+  })
+  
+  observeEvent(input$sp3, {
+    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
+  })
+  
+  observeEvent(input$sp4, {
+    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
+  })
+  
+  
+  # --- Modultests ... -------------------------------------------------------------------------------------
   
   # t001: Zeit und Typumwandlung
   observeEvent(input$testBerechnung, {
@@ -166,6 +216,25 @@ shinyServer(function(input, output, session) {
     updateNumericInput(session, nichtAusgewaehlt[3], value = p*4)
     
     output$ergebnisAusgewaehlt <- renderText({ paste(ausgewaehlt) })
+  })
+  
+  # t004:
+  observeEvent(input$testCheckAnzahlSpieler, {
+    if (input$testCheckAnzahlSpieler)
+        output$ergebnisAngehakteSpieler <- renderText({ paste(checkSpielerZahl()) })
+    else
+      output$ergebnisAngehakteSpieler <- renderText({ paste("") })
+  })
+  
+  # t005:
+  observeEvent(input$testCalculatePunkte, {
+    if (input$testCalculatePunkte) {
+      erg <- calculatePunkte()
+      output$ergebnisSpieler <- renderText({ paste(erg[1]) })
+      output$ergebnisNichtSpieler <- renderText({ paste(erg[2]) })
+      output$ergebnisSchneider <- renderText({ paste(is.Schneider()) })
+      output$ergebnisSchwarz <- renderText({ paste(is.Schwarz()) })
+    }
   })
   
 })

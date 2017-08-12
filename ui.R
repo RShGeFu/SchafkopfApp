@@ -44,7 +44,7 @@ shinyUI(fluidPage(
               # --- Spielart -------------------------------------------------------------------------------
               wellPanel(
                   fluidRow(
-                    column(6, radioButtons("spielArt1", "Spiel", choiceNames = c("Sauspiel", "Solo"), choiceValues = c(1, 2))),
+                    column(6, radioButtons("spielArt1", "Spiel", choiceNames = c("Sauspiel", "Solo"), choiceValues = c(1, 3), selected = 1)),
                     conditionalPanel("input.spielArt1 == 2",
                       column(6, radioButtons("soloArt", "Solo", choiceNames = c("Normal", "Tout", "Si"), choiceValues = c(1, 2, 4)))
                     )
@@ -126,7 +126,20 @@ shinyUI(fluidPage(
                    # t003: Button-Klick -> füllt 3x Punkte aus, 4. wird berechnet
                    hr(),
                    actionButton("testSumPoints", "Teste Punktesummen"),
-                   textOutput("ergebnisAusgewaehlt")
+                   textOutput("ergebnisAusgewaehlt"),
+                   
+                   # t004: Checkbox-Klick -> zeigt die angehakten Spieler
+                   hr(),
+                   checkboxInput("testCheckAnzahlSpieler", "Teste angehkate Spieler"),
+                   textOutput("ergebnisAngehakteSpieler"),
+                   
+                   # t005: Button-Klick -> füllt 3x Punkte aus, 4. wird berechnet
+                   hr(),
+                   checkboxInput("testCalculatePunkte", "Teste Punkte Spieler/NichtSpieler"),
+                   textOutput("ergebnisSpieler"),
+                   textOutput("ergebnisNichtSpieler"),
+                   textOutput("ergebnisSchneider"),
+                   textOutput("ergebnisSchwarz")
   )
   
   # --- Ende Test-Panels -----------------------------------------------------------------------------------

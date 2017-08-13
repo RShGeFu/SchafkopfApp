@@ -46,7 +46,7 @@ shinyUI(fluidPage(
                   fluidRow(
                     column(6, radioButtons("spielArt1", "Spiel", choiceNames = c("Sauspiel", "Solo"), choiceValues = c(1, 3), selected = 1)),
                     conditionalPanel("input.spielArt1 == 3",
-                      column(6, radioButtons("soloArt", "Solo", choiceNames = c("Normal", "Tout", "Si"), choiceValues = c(1, 2, 4)))
+                      column(6, radioButtons("soloArt", "Solo", choiceNames = c("Normal", "Tout", "Si"), choiceValues = c(0, 1, 2)))
                     )
                   )
               ),
@@ -146,7 +146,12 @@ shinyUI(fluidPage(
                    #       Tarif verrechnet wird
                    hr(),
                    actionButton("testFindWinner", "Zeige Gewinner - Verrechnungsfaktor"),
-                   textOutput("ergebnisFindWinner")
+                   textOutput("ergebnisFindWinner"),
+                   
+                   # t007: Button-Klick -> zeigt den aktuellen Gewinn an
+                   hr(),
+                   actionButton("testCalculateProfit", "Zeige Gewinn an"),
+                   textOutput("ergebnisCalculateProfit")
   )
   
   # --- Ende Test-Panels -----------------------------------------------------------------------------------

@@ -36,9 +36,6 @@ shinyServer(function(input, output, session) {
              0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
              20)
   
-  punkte <- NULL
-  hatGespielt <- NULL
-
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
   renderPlayer <- function() {
     output$Spieler1 <- renderText({ paste(spieler[1]) })
@@ -46,19 +43,58 @@ shinyServer(function(input, output, session) {
     output$Spieler3 <- renderText({ paste(spieler[3]) })
     output$Spieler4 <- renderText({ paste(spieler[4]) }) 
   }
+
+#'#################################################################################################################      
+#' Funktion: reset() - setzt das Inputpanel, d.h. die Eingabemaske wieder auf den Ausgangszustand
+#'
+#' @return leer
+#' @export keiner
+#'
+#' @examples
+#'#################################################################################################################  
   
   reset <- function() {
-    
+    updateRadioButtons(session, "spielArt1", selected = 1)
+    updateRadioButtons(session, "soloArt", selected = 0)
+    updateNumericInput(session, "pkt1", value = 0)
+    updateNumericInput(session, "pkt2", value = 0)
+    updateNumericInput(session, "pkt3", value = 0)
+    updateNumericInput(session, "pkt4", value = 0)
+    updateCheckboxInput(session, "sp1", value = FALSE)
+    updateCheckboxInput(session, "sp2", value = FALSE)
+    updateCheckboxInput(session, "sp3", value = FALSE)
+    updateCheckboxInput(session, "sp4", value = FALSE)
+    updateNumericInput(session, "anzahlGelegt", value = 0)
+    updateNumericInput(session, "anzahlLaufende", value = 0)
   }
+
+#'#################################################################################################################  
+#' Funktion: sumPoints() - summiert die Punkte dreier Spieler und errechnet die Punkte des vierten Spielers
+#'
+#' @return keine, anstatt dessen Update des numericInput mit der fehlenden Punktzahl
+#' @export keiner
+#'
+#' @examples
+#'#################################################################################################################
   
-  sumPoints <- function(punkteAllerSpieler = punkte) {
-    pkt <- which(punkteAllerSpieler == 0)                           # Bei welchem Spieler ist noch 0 Pkt eingetragen?
+  sumPoints <- function() {
+    punkte <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)     # Aktualisiere die Punkteliste
+    pkt <- which(punkte == 0)                                       # Bei welchem Spieler ist noch 0 Pkt eingetragen?
     if (length(pkt) < 2) {                                          # Ist nur mehr bei einem Spieler kein Ergebnis
       punkte[pkt] <- 120 - sum(punkte)                              # eingetragen, dann berechne es 
       numInp <- c("pkt1", "pkt2", "pkt3", "pkt4")                   # suche dir aus allen Spielern das richtige Feld
       updateNumericInput(session, numInp[pkt], value = punkte[pkt]) # heraus und trage das Ergebnis ein
     }
   }
+
+#'#################################################################################################################    
+#' Funktion: checkPoints() - testet, ob die Punktesumme 120 ergibt
+#'
+#' @return logical - TRUE, wenn die Gesamtpunktzahl 120 ergibt, sonst FALSE
+#' @export keiner
+#'
+#' @examples die vier Spieler zählen geben 20, 20, 60, 21 Punkte ein -> FALSE
+#'#################################################################################################################  
   
   checkPoints <- function() {
     return(sum(c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)) == 120)
@@ -105,7 +141,7 @@ shinyServer(function(input, output, session) {
   }
   
 #'#################################################################################################################
-#' Funktion: is.Schneider()
+#' Funktion: is.Schneider() - testet, ob eine Spielerpartei weniger als 30 Punkte hat
 #'
 #' @param punkte, voreingestellt calculatePunkte(), hier werden für die Spielerparteien bereits die Punkte
 #' berechnet. 
@@ -115,12 +151,13 @@ shinyServer(function(input, output, session) {
 #'
 #' @examples c(110, 10) -> TRUE, c(80, 40) -> FALSE, c(40, 80) -> FALSE
 #'#################################################################################################################
+  
   is.Schneider <- function(punkte = calculatePunkte()) {
     return(length(punkte[punkte < 30]) > 0)
   }
   
 #'#################################################################################################################
-#' Funktion: is.Schwarz()
+#' Funktion: is.Schwarz() - testet, ob eine Spielerpartei 0 Punkte hat
 #'
 #' @param punkte, voreingestellt calculatePunkte(), hier werden für die Spielerparteien bereits die Punkte
 #' berechnet.
@@ -130,39 +167,38 @@ shinyServer(function(input, output, session) {
 #'
 #' @examples punkte = c(0, 120) -> TRUE, punkte = c(120, 0) -> TRUE, punkte(110, 10) -> FALSE
 #'#################################################################################################################
+  
   is.Schwarz <- function(punkte = calculatePunkte()) {
     return(length(punkte[punkte < 1]) > 0)
   }
   
   findWinner <- function() {
     # update der Spieler/Nichtspieler
-    hatGespielt <<- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
+    hatGespielt <- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
     
     # rechne die Punkte aus
     pkt <- calculatePunkte()
     
     # Wenn alle Regeln eingehalten wurden und die Summe der Punkte 120 ergibt
-    if (pkt[1] > -1 & pkt[2] > -1 & checkPoints())
+    if ((length(which(pkt==-1)) == 0) & checkPoints()) 
     
       # dann lege die Gewinner und Verlierer mit dem jeweiligen Tariffaktor fest
-      hatGespielt <<- hatGespielt * ifelse(pkt[1] < 61, -1, 1)
+      hatGespielt <- hatGespielt * ifelse(pkt[1] < 61, -1, 1)
     else
     
       # ansonsten 0, dann wird nichts berechnet
-      hatGespielt <<- c(0,0,0,0)
+      hatGespielt <- c(0,0,0,0)
+    
+    return(hatGespielt)
   }
   
   calculateProfit <- function() {
-    # Suche die Gewinner
-    findWinner()
-    
     # Berechne den Tarif für das Spiel
     gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider()) + tarif[1] * as.numeric(is.Schwarz()) + tarif[1] * as.numeric(input$anzahlLaufende)
     
     # Lege fest wer was bekommt oder bezahlen muß
-    profit <- hatGespielt * gt * (2 ^ (input$anzahlGelegt + as.integer(input$soloArt)))
+    profit <-  findWinner() * gt * (2 ^ (input$anzahlGelegt + as.integer(input$soloArt)))
     
-    # und teile es mit
     return(profit)
   }
   
@@ -187,25 +223,31 @@ shinyServer(function(input, output, session) {
   
   # Punkte in die Berechnungsliste eintragen
   observeEvent(input$pkt1, {
-    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)  
     sumPoints()
   })
   
   observeEvent(input$pkt2, {
-    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
     sumPoints()
   })
   
   observeEvent(input$pkt3, {
-    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
     sumPoints()
   })
   
   observeEvent(input$pkt4, {
-    punkte <<- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)
     sumPoints()
   })
   
+  # Daten speichern und Eingabe zurücksetzen
+  observeEvent(input$spielAufschreiben, {
+    reset()
+  })
+  
+  # --- Ausgabe --------------------------------------------------------------------------------------------
+  
+  output$gewinnPlot <- renderPlot({ 
+    plot(calculateProfit())
+  })  
   
   # --- Modultests ... -------------------------------------------------------------------------------------
   
@@ -271,8 +313,7 @@ shinyServer(function(input, output, session) {
   
   # t006:
   observeEvent(input$testFindWinner, {
-    findWinner()
-    output$ergebnisFindWinner <- renderText({ paste(hatGespielt) })
+    output$ergebnisFindWinner <- renderText({ paste(findWinner()) })
   })
   
   # t007:

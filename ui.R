@@ -100,9 +100,11 @@ shinyUI(fluidPage(
               )
     ),
   
-    # --- Ausgabe der Spieldaten ---------------------------------------------------------------------------
-  hr(),
-  plotOutput("gewinnPlot")
+  # --- Ausgabe der Spieldaten ---------------------------------------------------------------------------
+  tabsetPanel(id = "tSP",
+                tabPanel("Tabelle", dataTableOutput("gewinnTabelle"), value = "tab"),
+                tabPanel("Grafik", plotOutput("gewinnPlot"), value = "gra")
+  )
   
   ),
   

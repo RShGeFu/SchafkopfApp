@@ -32,9 +32,11 @@ shinyServer(function(input, output, session) {
   
   # --- Sessionbezogene Variablen --------------------------------------------------------------------------
   spieler <- c("Gerhard", "Martin", "Matthias", "Tobias")
+  spielerFarbe <- c("red", "blue", "green", "orange")
   tarif <- c(10, 
              0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
              20)
+  spielverlauf <- NULL
   
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
   renderPlayer <- function() {
@@ -240,15 +242,32 @@ shinyServer(function(input, output, session) {
   
   # Daten speichern und Eingabe zurücksetzen
   observeEvent(input$spielAufschreiben, {
-    reset()
+    p <- calculateProfit()
+    df <- data.frame(p[1], p[2], p[3], p[4])
+    colnames(df) <- c(spieler)
+    
+    if (is.null(spielverlauf)) {
+      spielverlauf <<- df
+    } else {
+      df[spieler] <- df[spieler] + spielverlauf[nrow(spielverlauf), spieler]
+      spielverlauf <<- rbind(spielverlauf, df)
+    }
+    
+    # --- Ausgabe --------------------------------------------------------------------------------------------
+    print(spielverlauf)
+    output$gewinnTabelle <- renderDataTable(spielverlauf)
+    output$gewinnPlot <- renderPlot({
+      y.min <- min(min(spielverlauf[,1]), min(spielverlauf[,2]), min(spielverlauf[,3]), min(spielverlauf[,4]))
+      y.max <- max(max(spielverlauf[,1]), max(spielverlauf[,2]), max(spielverlauf[,3]), max(spielverlauf[,4]))
+      plot(spielverlauf[,1], type = "l", lwd = 2, col = spielerFarbe[1], xlab = "Spiel", ylab = "Gewinn", main = "Spielverlauf", ylim = c(y.min, y.max))
+      lines(spielverlauf[,2], col = spielerFarbe[2], lwd = 2)
+      lines(spielverlauf[,3], col = spielerFarbe[3], lwd = 2)
+      lines(spielverlauf[,4], col = spielerFarbe[4], lwd = 2)
+      legend("topleft", spieler, col = spielerFarbe, lty = 1, lwd = 2, ncol = 4, border = NULL)
+    })
+    #reset()
   })
-  
-  # --- Ausgabe --------------------------------------------------------------------------------------------
-  
-  output$gewinnPlot <- renderPlot({ 
-    plot(calculateProfit())
-  })  
-  
+
   # --- Modultests ... -------------------------------------------------------------------------------------
   
   # t001: Zeit und Typumwandlung

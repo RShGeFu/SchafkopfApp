@@ -16,9 +16,9 @@ library(shiny)
 
 # --- Allgemeine Variablen ---------------------------------------------------------------------------------
 
-spiele <- list(c("Eichel", "Gras", "Herz", "Schelln"),
+spiele <- list(c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4),
                0, # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
-               c("Eichel", "Gras", "Herz", "Schelln", "Wenz", "Farbwenz", "Geier", "Bettler", "Ramsch"))
+               c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4, "Wenz" = 5, "Farbwenz" = 6, "Geier" = 7, "Bettler" = 8, "Ramsch" = 9))
 
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
@@ -204,6 +204,19 @@ shinyServer(function(input, output, session) {
     return(profit)
   }
   
+  updateTabelleGrafik <- function() {
+    output$gewinnTabelle <- renderDataTable(spielverlauf)
+    output$gewinnPlot <- renderPlot({
+      y.min <- min(min(spielverlauf[,1]), min(spielverlauf[,2]), min(spielverlauf[,3]), min(spielverlauf[,4]))
+      y.max <- max(max(spielverlauf[,1]), max(spielverlauf[,2]), max(spielverlauf[,3]), max(spielverlauf[,4]))
+      plot(spielverlauf[,1], type = "l", lwd = 2, col = spielerFarbe[1], xlab = "Spiel", ylab = "Gewinn", main = "Spielverlauf", ylim = c(y.min, y.max))
+      lines(spielverlauf[,2], col = spielerFarbe[2], lwd = 2)
+      lines(spielverlauf[,3], col = spielerFarbe[3], lwd = 2)
+      lines(spielverlauf[,4], col = spielerFarbe[4], lwd = 2)
+      legend("topleft", spieler, col = spielerFarbe, lty = 1, lwd = 2, ncol = 4, border = NULL)
+    })    
+  }
+  
   # --- Einstellen -----------------------------------------------------------------------------------------
   # ... der Spieler
   renderPlayer()
@@ -243,8 +256,17 @@ shinyServer(function(input, output, session) {
   # Daten speichern und Eingabe zurücksetzen
   observeEvent(input$spielAufschreiben, {
     p <- calculateProfit()
-    df <- data.frame(p[1], p[2], p[3], p[4])
-    colnames(df) <- c(spieler)
+    
+    df <- data.frame(p[1], p[2], p[3], p[4],
+                     p[1], p[2], p[3], p[4],
+                     input$spielArt1, input$spielArt2, input$soloArt,
+                     input$pkt1, input$pkt2, input$pkt3, input$pkt4,
+                     input$anzahlGelegt, input$anzahlLaufende)
+    colnames(df) <- c(spieler,
+                      "Gewinn 1", "Gewinn 2", "Gewinn 3", "Gewinn 4",
+                      "Spielart", "Spiel", "Solotarif",
+                      "Punkte Sp1", "Punkte Sp2", "Punkte Sp3", "Punkte Sp4",
+                      "Gelegt", "Laufende")
     
     if (is.null(spielverlauf)) {
       spielverlauf <<- df
@@ -253,19 +275,18 @@ shinyServer(function(input, output, session) {
       spielverlauf <<- rbind(spielverlauf, df)
     }
     
-    # --- Ausgabe --------------------------------------------------------------------------------------------
-    print(spielverlauf)
-    output$gewinnTabelle <- renderDataTable(spielverlauf)
-    output$gewinnPlot <- renderPlot({
-      y.min <- min(min(spielverlauf[,1]), min(spielverlauf[,2]), min(spielverlauf[,3]), min(spielverlauf[,4]))
-      y.max <- max(max(spielverlauf[,1]), max(spielverlauf[,2]), max(spielverlauf[,3]), max(spielverlauf[,4]))
-      plot(spielverlauf[,1], type = "l", lwd = 2, col = spielerFarbe[1], xlab = "Spiel", ylab = "Gewinn", main = "Spielverlauf", ylim = c(y.min, y.max))
-      lines(spielverlauf[,2], col = spielerFarbe[2], lwd = 2)
-      lines(spielverlauf[,3], col = spielerFarbe[3], lwd = 2)
-      lines(spielverlauf[,4], col = spielerFarbe[4], lwd = 2)
-      legend("topleft", spieler, col = spielerFarbe, lty = 1, lwd = 2, ncol = 4, border = NULL)
-    })
-    #reset()
+    # --- Ausgabe ------------------------------------------------------------------------------------------
+    print(df)
+    updateTabelleGrafik()
+    reset()
+  })
+  
+  observeEvent(input$letztesKorrigieren, {
+    spielverlauf <<- spielverlauf[-c(nrow(spielverlauf)),]
+    
+    # --- Ausgabe nach Korrektur ---------------------------------------------------------------------------
+    updateTabelleGrafik()
+    reset()
   })
 
   # --- Modultests ... -------------------------------------------------------------------------------------

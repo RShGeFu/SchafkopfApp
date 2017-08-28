@@ -255,19 +255,22 @@ shinyServer(function(input, output, session) {
   
   # Daten speichern und Eingabe zurücksetzen
   observeEvent(input$spielAufschreiben, {
+    # Gewinn der Spielrunde berechnen
     p <- calculateProfit()
     
+    # Daten zusammenfassen
     df <- data.frame(p[1], p[2], p[3], p[4],
                      p[1], p[2], p[3], p[4],
                      input$spielArt1, input$spielArt2, input$soloArt,
                      input$pkt1, input$pkt2, input$pkt3, input$pkt4,
                      input$anzahlGelegt, input$anzahlLaufende)
     colnames(df) <- c(spieler,
-                      "Gewinn 1", "Gewinn 2", "Gewinn 3", "Gewinn 4",
+                      "Gewinn Sp1", "Gewinn Sp2", "Gewinn Sp3", "Gewinn Sp4",
                       "Spielart", "Spiel", "Solotarif",
                       "Punkte Sp1", "Punkte Sp2", "Punkte Sp3", "Punkte Sp4",
                       "Gelegt", "Laufende")
     
+    # Neuanlegen oder Hinzufügen
     if (is.null(spielverlauf)) {
       spielverlauf <<- df
     } else {

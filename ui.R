@@ -14,12 +14,22 @@
 # --- Benötigte Packages -----------------------------------------------------------------------------------
 library(shiny)
 
+
 # --- Aufbau des UI ----------------------------------------------------------------------------------------
 shinyUI(fluidPage(
   
+  # --- JS-Scripts -----------------------------------------------------------------------------------------
+  tags$head(tags$script(HTML("
+    Shiny.addCustomMessageHandler('saveTable', function(mes) {
+        //Teste, ob Directory vorhanden ist
+        //Erstelle Directory
+        //Erstelle oder ersetze Datei
+        alert(mes);
+      })"
+    ))),
+  
   # --- User-Panel -----------------------------------------------------------------------------------------
   # Hier ist der für den User angezeigte Bereich
-  
   conditionalPanel("true",
   
   # --- Titel und Gruppenauswahl ---------------------------------------------------------------------------

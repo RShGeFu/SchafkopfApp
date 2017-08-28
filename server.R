@@ -29,8 +29,11 @@ shinyServer(function(input, output, session) {
     print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
     stopApp()
   })
-  
+    
   # --- Sessionbezogene Variablen --------------------------------------------------------------------------
+  if (file.exists("schafkopfrunden.csv"))
+    runden <- read.csv("schafkopfrunden.csv")
+  
   spieler <- c("Gerhard", "Martin", "Matthias", "Tobias")
   spielerFarbe <- c("red", "blue", "green", "orange")
   tarif <- c(10, 
@@ -102,27 +105,56 @@ shinyServer(function(input, output, session) {
     return(sum(c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)) == 120)
   }
   
+#'#################################################################################################################
+#' Funktion: getSpieler() - findet den oder die Spieler, mindestens 1, maximal 2
+#'
+#' @return Vektor, der die Spieler enthält
+#' @export keine
+#'
+#' @examples Spieler 1 und 3 waren Spieler -> c(1, 3)
+#'#################################################################################################################
+
   getSpieler <- function() {
     partner <- c(input$sp1, input$sp2, input$sp3, input$sp4)  # Nimm alle Spieler und ...
     spielerPartner <- which(partner == TRUE)                  # ... suche die Spieler!
     return(spielerPartner)
   }
   
+#'#################################################################################################################
+#' Funktion: getNichtSpieler() - findet die Nichtspieler heraus, mindestens 2
+#'
+#' @return Vektor, der die Nichtspieler enthält
+#' @export
+#'
+#' @examples Sieler 2,3 und 4 waren nicht Spieler -> c(2, 3, 4)
+#'#################################################################################################################
+
   getNichtSpieler <- function() {
     partner <- c(input$sp1, input$sp2, input$sp3, input$sp4)  # Nimm alle Spieler und ...
     nichtSpielerPartner <- which(partner == FALSE)            # ... und suche die Nicht-Spieler
     return(nichtSpielerPartner)
   }
 
+
+#'#################################################################################################################
+#' Funkction: checkSpielerAnzahl() - testet, ob die ausgewälten Spieler, d.h. die Anzahl der Spieler
+#'tatsächlich auch zum angegebenen Spiel passen
+#'
+#' @return logical - TRUE, wenn die Anzahl stimmt, FALSE, wenn die Anzahl nicht stimmt
+#' @export
+#'
+#' @examples Solo -> 2 Spieler angeklickt -> FALSE, Sauspiel -> 2 Spieler angeklickt -> TRUE
+#'#################################################################################################################
+
   checkSpielerZahl <- function() {
     sp <- c(input$sp1, input$sp2, input$sp3, input$sp4)       # Nimm alle Spieler...
     return(
       switch(input$spielArt1,                                 # ...und je nach nach Spielart
              "1" = {
-                richtigeAnzahl <- length(which(sp)) == 2      # ... gib an, ob 2 Spieler...
+                richtigeAnzahl <- length(which(sp)) == 2      # ... gib an, ob 2 Spieler (Sauspiel)...
              },
              "3" = {
-                richtigeAnzahl <- length(which(sp)) == 1      # ... oder 1 Spieler richtig ist
+                richtigeAnzahl <- length(which(sp)) == 1      # ... oder 1 Spieler (Solo) richtig ist
             },
             default = {
                 richtigeAnzahl <- FALSE
@@ -131,6 +163,16 @@ shinyServer(function(input, output, session) {
     )
   }
   
+#'#################################################################################################################
+#' Funktion: calculatePunkte() - berechnet die Punkte von Spieler und Nichtspieler
+#'
+#' @return Vektor, der die Punkte enthält. 1. Stelle: Spieler, 2. Stelle: Nichtspieler
+#' @export
+#'
+#' @examples Spieler gemeinsam 65 Punkte, Nichtspieler gemeinsam 55 Punkte -> c(65, 55), Spieleranzahl stimmt nicht
+#' -> c(-1, -1)
+#'#################################################################################################################
+
   calculatePunkte <- function() {
     ergebnis <- c(-1, -1)
     if (checkSpielerZahl()) {                                 # Wenn die Spielerzahl stimmt ...
@@ -174,6 +216,17 @@ shinyServer(function(input, output, session) {
     return(length(punkte[punkte < 1]) > 0)
   }
   
+#'#################################################################################################################
+#' Funktion: findWinner() - findet heraus, wer gewonnen hat, Spieler oder Nichtspieler 
+#'
+#' @return Vektor, der jeden Spieler den Multiplikator 1 oder -1 zurückgibt, mit der Tarif verrechnet und aufsum-
+#' miert wird
+#' @export
+#'
+#' @examples Spieler 1 und 3 haben gewonnen -< c(1, -1, 1, -1), NichtSpieler 2 und 4 haben gewonnen -> 
+#' c(-1, 1, -1, 1)
+#'#################################################################################################################
+
   findWinner <- function() {
     # update der Spieler/Nichtspieler
     hatGespielt <- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
@@ -194,6 +247,15 @@ shinyServer(function(input, output, session) {
     return(hatGespielt)
   }
   
+#'#################################################################################################################
+#' Funktion: calculateProfit() - berechnet für die gespielte Runde den Gewinn
+#'
+#' @return Vektor, der den Gewinn jeweils für die spieler enthält - je nachdem, ob gewonnen oder verloren 
+#' @export
+#'
+#' @examples Spieler 1 und 2 gewinnen das Sauspiel mit 3 Laufenden -> 40 Cent -> c(40, 40, -40, -40)
+#'#################################################################################################################
+ 
   calculateProfit <- function() {
     # Berechne den Tarif für das Spiel
     gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider()) + tarif[1] * as.numeric(is.Schwarz()) + tarif[1] * as.numeric(input$anzahlLaufende)
@@ -204,6 +266,15 @@ shinyServer(function(input, output, session) {
     return(profit)
   }
   
+#'#################################################################################################################
+#' Funktion: updateTabelleGrafik() - zeichnet die Tabelle und den graphischen Spielverlauf neu
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'#################################################################################################################
+
   updateTabelleGrafik <- function() {
     output$gewinnTabelle <- renderDataTable(spielverlauf)
     output$gewinnPlot <- renderPlot({
@@ -258,24 +329,32 @@ shinyServer(function(input, output, session) {
     # Gewinn der Spielrunde berechnen
     p <- calculateProfit()
     
-    # Daten zusammenfassen
-    df <- data.frame(p[1], p[2], p[3], p[4],
+    # Hier noch Test auf Korrektheit von p, d.h. Profit darf nicht 4x 0 beinhalten
+    is.correct <- length(which(p == 0)) != 4
+    if (is.correct) {
+    
+      # Daten zusammenfassen
+      df <- data.frame(p[1], p[2], p[3], p[4],
                      p[1], p[2], p[3], p[4],
                      input$spielArt1, input$spielArt2, input$soloArt,
                      input$pkt1, input$pkt2, input$pkt3, input$pkt4,
                      input$anzahlGelegt, input$anzahlLaufende)
-    colnames(df) <- c(spieler,
+      colnames(df) <- c(spieler,
                       "Gewinn Sp1", "Gewinn Sp2", "Gewinn Sp3", "Gewinn Sp4",
                       "Spielart", "Spiel", "Solotarif",
                       "Punkte Sp1", "Punkte Sp2", "Punkte Sp3", "Punkte Sp4",
                       "Gelegt", "Laufende")
     
-    # Neuanlegen oder Hinzufügen
-    if (is.null(spielverlauf)) {
-      spielverlauf <<- df
+      # Neuanlegen oder Hinzufügen
+      if (is.null(spielverlauf)) {
+        spielverlauf <<- df
+      } else {
+        df[spieler] <- df[spieler] + spielverlauf[nrow(spielverlauf), spieler]
+        spielverlauf <<- rbind(spielverlauf, df)
+      }
+      
     } else {
-      df[spieler] <- df[spieler] + spielverlauf[nrow(spielverlauf), spieler]
-      spielverlauf <<- rbind(spielverlauf, df)
+      session$sendCustomMessage("saveTable", "Stimmt nicht!")
     }
     
     # --- Ausgabe ------------------------------------------------------------------------------------------

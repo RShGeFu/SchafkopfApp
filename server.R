@@ -42,6 +42,16 @@ shinyServer(function(input, output, session) {
   spielverlauf <- NULL
   
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
+
+#'#################################################################################################################
+#' Funktion: renderPlayer() - stellt die Namen der Spieler auf dem UI dar
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'#################################################################################################################
+  
   renderPlayer <- function() {
     output$Spieler1 <- renderText({ paste(spieler[1]) })
     output$Spieler2 <- renderText({ paste(spieler[2]) })
@@ -330,8 +340,7 @@ shinyServer(function(input, output, session) {
     p <- calculateProfit()
     
     # Hier noch Test auf Korrektheit von p, d.h. Profit darf nicht 4x 0 beinhalten
-    is.correct <- length(which(p == 0)) != 4
-    if (is.correct) {
+    if (length(which(p == 0)) != 4) {
     
       # Daten zusammenfassen
       df <- data.frame(p[1], p[2], p[3], p[4],
@@ -353,16 +362,18 @@ shinyServer(function(input, output, session) {
         spielverlauf <<- rbind(spielverlauf, df)
       }
       
+      # --- Ausgabe ------------------------------------------------------------------------------------------
+      print(df)
+      updateTabelleGrafik()
+      reset()
+      
     } else {
       session$sendCustomMessage("saveTable", "Stimmt nicht!")
     }
-    
-    # --- Ausgabe ------------------------------------------------------------------------------------------
-    print(df)
-    updateTabelleGrafik()
-    reset()
+
   })
   
+  # Letzten Eintrag zurücksetzen
   observeEvent(input$letztesKorrigieren, {
     spielverlauf <<- spielverlauf[-c(nrow(spielverlauf)),]
     

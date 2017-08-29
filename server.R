@@ -13,6 +13,8 @@
 
 # --- Benötigte Packages -----------------------------------------------------------------------------------
 library(shiny)
+library(DBI)
+library(RMySQL)
 
 # --- Allgemeine Variablen ---------------------------------------------------------------------------------
 
@@ -38,7 +40,7 @@ shinyServer(function(input, output, session) {
     
   # --- Initialisierung ------------------------------------------------------------------------------------
 
-    loadSpielverlaufbyDB <- function() {
+  loadSpielverlaufbyDB <- function() {
     
   }
   
@@ -51,26 +53,42 @@ shinyServer(function(input, output, session) {
   }
   
   loadGroupsByDB <- function() {
-    return(NULL) 
+    df <- NULL
+
+    conn <- dbConnect(
+      drv = RMySQL::MySQL(),
+      dbname = "test",
+      host = "127.0.0.1",
+      username = "",
+      password = "")
+    on.exit(dbDisconnect(conn), add = TRUE)
+    
+    if (!is.null(conn)) {
+      query <- paste0("SELECT * FROM tabelle1;")
+      df <- dbGetQuery(conn, query)
+    }
+   
+    return(df)
   }
   
   loadGroupsByFile <- function (fileSKR) {
     runden <- NULL
+    
     if (file.exists(fileSKR))
       runden <- read.csv(fileSKR)
+    
     return(runden)
   }
   
-  loadGroups <- function(mode = 0, fileSKR = "schafkopfrunden.csv") {
+  loadGroups <- function(mode = "0", fileSKR = "schafkopfrunden.csv") {
     return(
-      switch(mode,
+      switch(as.character(mode),
         "0" = { loadGroupsByFile(fileSKR) },
         "1" = { loadGroupsByDB() },
         default = { NULL }
       ))
   }
   
-
   init <- function() {
     
     groupsDF <- loadGroups()

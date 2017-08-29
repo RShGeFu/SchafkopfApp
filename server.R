@@ -392,12 +392,13 @@ shinyServer(function(input, output, session) {
                      p[1], p[2], p[3], p[4],
                      input$spielArt1, input$spielArt2, input$soloArt,
                      input$pkt1, input$pkt2, input$pkt3, input$pkt4,
-                     input$anzahlGelegt, input$anzahlLaufende)
+                     input$anzahlGelegt, input$anzahlLaufende,
+                     as.numeric(is.Schneider()), as.numeric(is.Schwarz()), Sys.time())
       colnames(df) <- c(spieler,
                       "Gewinn Sp1", "Gewinn Sp2", "Gewinn Sp3", "Gewinn Sp4",
                       "Spielart", "Spiel", "Solotarif",
                       "Punkte Sp1", "Punkte Sp2", "Punkte Sp3", "Punkte Sp4",
-                      "Gelegt", "Laufende")
+                      "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
     
       # Neuanlegen oder Hinzufügen
       if (is.null(spielverlauf)) {

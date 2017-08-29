@@ -26,6 +26,7 @@ spiele <- list(c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4),
 shinyServer(function(input, output, session) {
   
   # --- Sessionbezogene Variablen --------------------------------------------------------------------------
+  spielrunde <- NULL
   spieler <- NULL
   spielerFarbe <- NULL
   tarif <- NULL
@@ -49,7 +50,7 @@ shinyServer(function(input, output, session) {
   }
   
   loadSpielverlauf <- function() {
-    
+    return(NULL) 
   }
   
   loadGroupsByDB <- function() {
@@ -75,7 +76,7 @@ shinyServer(function(input, output, session) {
     runden <- NULL
     
     if (file.exists(fileSKR))
-      runden <- read.csv(fileSKR)
+      runden <- read.csv(fileSKR, sep = ";", header = TRUE)
     
     return(runden)
   }
@@ -92,17 +93,35 @@ shinyServer(function(input, output, session) {
   init <- function() {
     
     groupsDF <- loadGroups()
-    df_Spielverlauf <- loadSpielverlauf()
-    
-    spieler <<- c("Gerhard", "Martin", "Matthias", "Tobias")
-    spielerFarbe <<- c("red", "blue", "green", "orange")
-    tarif <<- c(10, 
-                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
-                20)
-    spielverlauf <<- NULL    
-  }
+    groupsDF$Gruppe <- as.character(groupsDF$Gruppe)
+    groupsDF$Spieler1 <- as.character(groupsDF$Spieler1)
+    groupsDF$Spieler2 <- as.character(groupsDF$Spieler2)
+    groupsDF$Spieler3 <- as.character(groupsDF$Spieler3)
+    groupsDF$Spieler4 <- as.character(groupsDF$Spieler4)
+    groupsDF$FarbeSp1 <- as.character(groupsDF$FarbeSp1)
+    groupsDF$FarbeSp2 <- as.character(groupsDF$FarbeSp2)
+    groupsDF$FarbeSp3 <- as.character(groupsDF$FarbeSp3)
+    groupsDF$FarbeSp4 <- as.character(groupsDF$FarbeSp4)
+    groupsDF$GrundtarifSpiel <- as.integer(groupsDF$GrundtarifSpiel)
+    groupsDF$GrundtarifSolo <- as.integer(groupsDF$GrundtarifSolo)
 
-  init()
+    spielrunde <<- as.list(groupsDF[,'Gruppe'])
+    
+    gruppe <- groupsDF[which(groupsDF$zuletztAktiv == 1),]
+    
+    spieler <<- c(gruppe[1, 'Spieler1'], gruppe[1, 'Spieler2'], 
+                  gruppe[1, 'Spieler3'], gruppe[1, 'Spieler4'])
+    
+    spielerFarbe <<- c(gruppe[1, 'FarbeSp1'], gruppe[1, 'FarbeSp2'], 
+                       gruppe[1, 'FarbeSp3'], gruppe[1, 'FarbeSp4'])
+    
+    tarif <<- c(gruppe[1, 'GrundtarifSpiel'], 
+                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
+                gruppe[1, 'GrundtarifSolo'])
+    
+    spielverlauf <<- loadSpielverlauf()
+
+  }
   
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
 
@@ -362,6 +381,13 @@ shinyServer(function(input, output, session) {
   }
   
   # --- Einstellen -----------------------------------------------------------------------------------------
+  
+  # Initialisierung der Variablen
+  init()
+  
+  # ... der Spielrunde
+  updateSelectInput(session, "gruppeWaehlen", choices = spielrunde)
+  
   # ... der Spieler
   renderPlayer()
   

@@ -23,6 +23,12 @@ spiele <- list(c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4),
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
   
+  # --- Sessionbezogene Variablen --------------------------------------------------------------------------
+  spieler <- NULL
+  spielerFarbe <- NULL
+  tarif <- NULL
+  spielverlauf <- NULL
+  
   # --- Bei Sessionende ... --------------------------------------------------------------------------------
   session$onSessionEnded(function() {
     # TODO: ggf. nochmaliges Speichern
@@ -30,16 +36,55 @@ shinyServer(function(input, output, session) {
     stopApp()
   })
     
-  # --- Sessionbezogene Variablen --------------------------------------------------------------------------
-  if (file.exists("schafkopfrunden.csv"))
-    runden <- read.csv("schafkopfrunden.csv")
+  # --- Initialisierung ------------------------------------------------------------------------------------
+
+    loadSpielverlaufbyDB <- function() {
+    
+  }
   
-  spieler <- c("Gerhard", "Martin", "Matthias", "Tobias")
-  spielerFarbe <- c("red", "blue", "green", "orange")
-  tarif <- c(10, 
-             0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
-             20)
-  spielverlauf <- NULL
+  loadSpielverlaufByFile <- function() {
+    
+  }
+  
+  loadSpielverlauf <- function() {
+    
+  }
+  
+  loadGroupsByDB <- function() {
+    return(NULL) 
+  }
+  
+  loadGroupsByFile <- function (fileSKR) {
+    runden <- NULL
+    if (file.exists(fileSKR))
+      runden <- read.csv(fileSKR)
+    return(runden)
+  }
+  
+  loadGroups <- function(mode = 0, fileSKR = "schafkopfrunden.csv") {
+    return(
+      switch(mode,
+        "0" = { loadGroupsByFile(fileSKR) },
+        "1" = { loadGroupsByDB() },
+        default = { NULL }
+      ))
+  }
+  
+
+  init <- function() {
+    
+    groupsDF <- loadGroups()
+    df_Spielverlauf <- loadSpielverlauf()
+    
+    spieler <<- c("Gerhard", "Martin", "Matthias", "Tobias")
+    spielerFarbe <<- c("red", "blue", "green", "orange")
+    tarif <<- c(10, 
+                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
+                20)
+    spielverlauf <<- NULL    
+  }
+
+  init()
   
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
 

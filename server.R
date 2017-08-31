@@ -22,6 +22,8 @@ spiele <- list(c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4),
                0, # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
                c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4, "Wenz" = 5, "Farbwenz" = 6, "Geier" = 7, "Bettler" = 8, "Ramsch" = 9))
 
+fileGroups <- "schafkopfrunden.csv"
+
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
   
@@ -82,13 +84,34 @@ shinyServer(function(input, output, session) {
     return(runden)
   }
   
-  loadGroups <- function(mode = "0", fileSKR = "schafkopfrunden.csv") {
+  loadGroups <- function(mode = "0", fileSKR = fileGroups) {
     return(
       switch(as.character(mode),
         "0" = { loadGroupsByFile(fileSKR) },
         "1" = { loadGroupsByDB() },
         default = { NULL }
       ))
+  }
+  
+  setActiveGroup <- function() {
+    
+    nr <- which(groupsDF$zuletztAktiv == 1)
+    gruppe <- groupsDF[nr,]
+    
+    spieler <<- c(gruppe[1, 'Spieler1'], gruppe[1, 'Spieler2'], 
+                  gruppe[1, 'Spieler3'], gruppe[1, 'Spieler4'])
+    
+    spielerFarbe <<- c(gruppe[1, 'FarbeSp1'], gruppe[1, 'FarbeSp2'], 
+                       gruppe[1, 'FarbeSp3'], gruppe[1, 'FarbeSp4'])
+    
+    tarif <<- c(gruppe[1, 'GrundtarifSpiel'], 
+                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
+                gruppe[1, 'GrundtarifSolo'])
+    
+    spielverlauf <<- loadSpielverlauf(groupsDF$DateiSpielliste)
+    
+    return(nr)
+    
   }
   
   init <- function() {
@@ -109,20 +132,7 @@ shinyServer(function(input, output, session) {
 
     spielrunde <<- as.list(groupsDF[,'Gruppe'])
     
-    nr <- which(groupsDF$zuletztAktiv == 1)
-    gruppe <- groupsDF[nr,]
-    
-    spieler <<- c(gruppe[1, 'Spieler1'], gruppe[1, 'Spieler2'], 
-                  gruppe[1, 'Spieler3'], gruppe[1, 'Spieler4'])
-    
-    spielerFarbe <<- c(gruppe[1, 'FarbeSp1'], gruppe[1, 'FarbeSp2'], 
-                       gruppe[1, 'FarbeSp3'], gruppe[1, 'FarbeSp4'])
-    
-    tarif <<- c(gruppe[1, 'GrundtarifSpiel'], 
-                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
-                gruppe[1, 'GrundtarifSolo'])
-    
-    spielverlauf <<- loadSpielverlauf(groupsDF$DateiSpielliste)
+    nr <- setActiveGroup()
 
     return(spielrunde[[nr]])
   }

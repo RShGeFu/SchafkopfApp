@@ -101,7 +101,23 @@ shinyServer(function(input, output, session) {
   }
   
 #'#################################################################################################################
-#' Funktion: getActiveGroup() - liefert die Position der aktiven Gruppe im Dataframe zurück
+#' Funktion: setZuletztAktiv() - setzt die aktive Gruppe im Dataframe groupsDF
+#'
+#' @param aktiveGruppe - Nummer der Zeile der aktive Gruppe
+#'
+#' @return keine
+#' @export keine
+#'
+#' @examples setZuletztAktiv(2) -> setzt im Dataframe groupsDF in der Zeile 2 zuletzt aktiv auf 1
+#'#################################################################################################################
+
+  setZuletztAktiv <- function(aktiveGruppe = 1) {
+    groupsDF$zuletztAktiv <<- 0
+    groupsDF[aktiveGruppe, 'zuletztAktiv'] <<- 1
+  }
+  
+#'#################################################################################################################
+#' Funktion: getZuletztAktiv() - liefert die Position der aktiven Gruppe im Dataframe zurück
 #'
 #' @return integer - Zeile der zuletzt als aktiv gesetzten Gruppe im Dataframe
 #' @export keine
@@ -109,7 +125,7 @@ shinyServer(function(input, output, session) {
 #' @examples zuletzt aktive Gruppe (groupsDF$zuletztAktiv) steht in Zeile 2 auf 1 -> Rückgabe-Wert: 2
 #'#################################################################################################################
 
-  getActiveGroup <- function() {
+  getZuletztAktiv <- function() {
     return(which(groupsDF$zuletztAktiv == 1))
   }
 
@@ -124,7 +140,7 @@ shinyServer(function(input, output, session) {
 
   setActiveGroup <- function() {
     
-    nr <- getActiveGroup()
+    nr <- getZuletztAktiv()
     
     gruppe <- groupsDF[nr,]
     
@@ -174,7 +190,7 @@ shinyServer(function(input, output, session) {
       
       setActiveGroup()
 
-      return(spielrunde[[getActiveGroup()]])
+      return(spielrunde[[getZuletztAktiv()]])
     
     } else {
       return(NULL)
@@ -438,23 +454,29 @@ shinyServer(function(input, output, session) {
     })    
   }
   
+  displayGroup <- function() {
+    # Anzeige der Spieler
+    renderPlayer()
+    
+    # ... der Spielart
+    updateSelectInput(session, "spielArt2", choices = spiele[[1]])
+    
+    # ... der Tarife
+    updateNumericInput(session, "tarifSpiel", value = tarif[1])
+    updateNumericInput(session, "tarifSolo", value = tarif[3])
+    
+  }
+  
   # --- Initialisierung der Gruppeninfo --------------------------------------------------------------------
   
   # Initialisierung der Variablen
   gr <- init()
   
-  # ... der Spielrunde
+  # Anzeige der Spielgruppenauswahl
   updateSelectInput(session, "gruppeWaehlen", choices = spielrunde, selected = gr)
   
-  # ... der Spieler
-  renderPlayer()
-  
-  # ... der Spielart
-  updateSelectInput(session, "spielArt2", choices = spiele[[1]])
-  
-  # ... der Tarife
-  updateNumericInput(session, "tarifSpiel", value = tarif[1])
-  updateNumericInput(session, "tarifSolo", value = tarif[3])
+  # Anzeige der Spielgruppendaten
+  displayGroup()
   
   # --- Spielliste einstellen ------------------------------------------------------------------------------
   observeEvent(input$spielArt1, {
@@ -530,21 +552,14 @@ shinyServer(function(input, output, session) {
   
   # --- Spielgruppe wechseln -------------------------------------------------------------------------------
   observeEvent(input$gruppeWaehlen, {
+    saveActiveGroup()
+    
     nr <- which(groupsDF$Gruppe == input$gruppeWaehlen)
-    print(paste("jetzt ...", nr))
-    groupsDF$zuletztAktiv <<- 0
-    groupsDF[nr, 'zuletztAktiv'] <<- 1
-    print("Gruppe Wählen")
+    
+    setZuletztAktiv(nr)
     setActiveGroup()
-    # ... der Spieler
-    renderPlayer()
+    displayGroup()
     
-    # ... der Spielart
-    updateSelectInput(session, "spielArt2", choices = spiele[[1]])
-    
-    # ... der Tarife
-    updateNumericInput(session, "tarifSpiel", value = tarif[1])
-    updateNumericInput(session, "tarifSolo", value = tarif[3])
   }, ignoreInit = TRUE)
 
   # --- Modultests ... -------------------------------------------------------------------------------------

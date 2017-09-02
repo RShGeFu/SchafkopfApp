@@ -20,9 +20,13 @@ library(RMySQL)
 
 spiele <- list(c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4),
                0, # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
-               c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4, "Wenz" = 5, "Farbwenz" = 6, "Geier" = 7, "Bettler" = 8, "Ramsch" = 9))
+               c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4, "Wenz" = 5, "Farbwenz" = 6, 
+                 "Geier" = 7, "Bettler" = 8, "Ramsch" = 9))
 
-fileGroups <- "schafkopfrunden.csv"
+fileGroups <- "schafkopfrunden.csv"    # Name für die Steuerungsdatei der Spielrunden
+localMode <- "0"                       # Speichermodus: 0 - die Daten werden in Dateien abgelegt
+dbMode <- "1"                          #                1 - Die Daten werden in einer Datenbank abgelegt
+configMode <- localMode                # Konfiguriert für lokale Speicherung
 
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
@@ -37,15 +41,69 @@ shinyServer(function(input, output, session) {
   tarif <- NULL            # ... beinhaltet den für die Gruppe gültigen Tarif
   spielverlauf <- NULL     # ... beinhaltet den gesamten Spielverlauf
   
-  # --- Bei Sessionende ... --------------------------------------------------------------------------------
-
-  session$onSessionEnded(function() {
-    # TODO: ggf. nochmaliges Speichern
-    print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
-    stopApp()
-  })
+  # --- Manipulationen der Dataframes und Vektoren ---------------------------------------------------------
+  
+  #'########################################################################################################
+  #' Funktion: setZuletztAktiv() - setzt die aktive Gruppe im Dataframe groupsDF
+  #'
+  #' @param aktiveGruppe - Nummer der Zeile der aktive Gruppe
+  #'
+  #' @return keine
+  #' @export keine
+  #'
+  #' @examples setZuletztAktiv(2) -> setzt im Dataframe groupsDF in der Zeile 2 zuletzt aktiv auf 1
+  #'########################################################################################################
+  
+  setZuletztAktiv <- function(aktiveGruppe = 1) {
+    if (!is.null(groupsDF)) {
+      groupsDF$zuletztAktiv <<- 0
+      groupsDF[aktiveGruppe, 'zuletztAktiv'] <<- 1
+    }
+  }
+  
+  #'########################################################################################################
+  #' Funktion: getZuletztAktiv() - liefert die Position der aktiven Gruppe im Dataframe zurück
+  #'
+  #' @return integer - Zeile der zuletzt als aktiv gesetzten Gruppe im Dataframe
+  #' @export keine
+  #'
+  #' @examples zuletzt aktive Gruppe (groupsDF$zuletztAktiv) steht in Zeile 2 auf 1 -> Rückgabe-Wert: 2
+  #'########################################################################################################
+  
+  getZuletztAktiv <- function() {
+    return(which(groupsDF$zuletztAktiv == 1))
+  }
+  
+  #'########################################################################################################
+  #' Funktion: setActiveGroup() - setzt die Session-variablen auf die aktive Gruppe
+  #'
+  #' @return keine
+  #' @export keine
+  #'
+  #' @examples
+  #'########################################################################################################
+  
+  setActiveGroup <- function() {
     
-  # --- Initialisierung ------------------------------------------------------------------------------------
+    nr <- getZuletztAktiv()
+    
+    gruppe <- groupsDF[nr,]
+    
+    spieler <<- c(gruppe[1, 'Spieler1'], gruppe[1, 'Spieler2'], 
+                  gruppe[1, 'Spieler3'], gruppe[1, 'Spieler4'])
+    
+    spielerFarbe <<- c(gruppe[1, 'FarbeSp1'], gruppe[1, 'FarbeSp2'], 
+                       gruppe[1, 'FarbeSp3'], gruppe[1, 'FarbeSp4'])
+    
+    tarif <<- c(gruppe[1, 'GrundtarifSpiel'], 
+                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
+                gruppe[1, 'GrundtarifSolo'])
+    
+    spielverlauf <<- loadSpielverlauf(gruppe[1, 'DateiSpielliste'])
+    
+  }
+  
+  # --- Initialisierungsfunktionen -------------------------------------------------------------------------
 
   loadSpielverlaufbyDB <- function() {
     
@@ -91,7 +149,7 @@ shinyServer(function(input, output, session) {
     return(runden)
   }
   
-  loadGroups <- function(mode = "0", fileSKR = fileGroups) {
+  loadGroups <- function(mode = configMode, fileSKR = fileGroups) {
     return(
       switch(as.character(mode),
         "0" = { loadGroupsByFile(fileSKR) },
@@ -99,73 +157,15 @@ shinyServer(function(input, output, session) {
         default = { NULL }
       ))
   }
-  
-#'#################################################################################################################
-#' Funktion: setZuletztAktiv() - setzt die aktive Gruppe im Dataframe groupsDF
-#'
-#' @param aktiveGruppe - Nummer der Zeile der aktive Gruppe
-#'
-#' @return keine
-#' @export keine
-#'
-#' @examples setZuletztAktiv(2) -> setzt im Dataframe groupsDF in der Zeile 2 zuletzt aktiv auf 1
-#'#################################################################################################################
 
-  setZuletztAktiv <- function(aktiveGruppe = 1) {
-    groupsDF$zuletztAktiv <<- 0
-    groupsDF[aktiveGruppe, 'zuletztAktiv'] <<- 1
-  }
-  
-#'#################################################################################################################
-#' Funktion: getZuletztAktiv() - liefert die Position der aktiven Gruppe im Dataframe zurück
-#'
-#' @return integer - Zeile der zuletzt als aktiv gesetzten Gruppe im Dataframe
-#' @export keine
-#'
-#' @examples zuletzt aktive Gruppe (groupsDF$zuletztAktiv) steht in Zeile 2 auf 1 -> Rückgabe-Wert: 2
-#'#################################################################################################################
-
-  getZuletztAktiv <- function() {
-    return(which(groupsDF$zuletztAktiv == 1))
-  }
-
-#'#################################################################################################################    
-#' Funktion: setActiveGroup() - setzt die Session-variablen auf die aktive Gruppe
-#'
-#' @return keine
-#' @export keine
-#'
-#' @examples
-#'#################################################################################################################
-
-  setActiveGroup <- function() {
-    
-    nr <- getZuletztAktiv()
-    
-    gruppe <- groupsDF[nr,]
-    
-    spieler <<- c(gruppe[1, 'Spieler1'], gruppe[1, 'Spieler2'], 
-                  gruppe[1, 'Spieler3'], gruppe[1, 'Spieler4'])
-    
-    spielerFarbe <<- c(gruppe[1, 'FarbeSp1'], gruppe[1, 'FarbeSp2'], 
-                       gruppe[1, 'FarbeSp3'], gruppe[1, 'FarbeSp4'])
-    
-    tarif <<- c(gruppe[1, 'GrundtarifSpiel'], 
-                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
-                gruppe[1, 'GrundtarifSolo'])
-    
-    spielverlauf <<- loadSpielverlauf(gruppe[1, 'DateiSpielliste'])
-    
-  }
-  
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: init() - Lädt die Spielgruppen und initialisiert Variablen
 #'
 #' @return
 #' @export
 #'
 #' @examples
-#'#################################################################################################################
+#'##########################################################################################################
 
     init <- function() {
     
@@ -196,17 +196,33 @@ shinyServer(function(input, output, session) {
       return(NULL)
     }
   }
+
+  # --- Dauerhafte Speicherung -----------------------------------------------------------------------------
+  
+  saveActiveGroupByDB <- function() {
+  }
+  
+  saveActiveGroupByFile <- function() {
+  }
+
+  saveActiveGroup <- function(mode = configMode) {
+    switch(as.character(mode),
+           "0" = { saveActiveGroupByFile () },
+           "1" = { saveActiveGroupByDB() },
+           default = { }
+    )
+  }
   
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------
 
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: renderPlayer() - stellt die Namen der Spieler auf dem UI dar
 #'
 #' @return
 #' @export
 #'
 #' @examples
-#'#################################################################################################################
+#'##########################################################################################################
   
   renderPlayer <- function() {
     output$Spieler1 <- renderText({ paste(spieler[1]) })
@@ -215,14 +231,14 @@ shinyServer(function(input, output, session) {
     output$Spieler4 <- renderText({ paste(spieler[4]) }) 
   }
 
-#'#################################################################################################################      
+#'##########################################################################################################
 #' Funktion: reset() - setzt das Inputpanel, d.h. die Eingabemaske wieder auf den Ausgangszustand
 #'
 #' @return leer
 #' @export keiner
 #'
 #' @examples
-#'#################################################################################################################  
+#'##########################################################################################################
   
   reset <- function() {
     updateRadioButtons(session, "spielArt1", selected = 1)
@@ -239,46 +255,49 @@ shinyServer(function(input, output, session) {
     updateNumericInput(session, "anzahlLaufende", value = 0)
   }
 
-#'#################################################################################################################  
+#'##########################################################################################################
 #' Funktion: sumPoints() - summiert die Punkte dreier Spieler und errechnet die Punkte des vierten Spielers
 #'
 #' @return keine, anstatt dessen Update des numericInput mit der fehlenden Punktzahl
 #' @export keiner
 #'
 #' @examples
-#'#################################################################################################################
+#'##########################################################################################################
   
   sumPoints <- function() {
     punkte <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)     # Aktualisiere die Punkteliste
-    pkt <- which(punkte == 0)                                       # Bei welchem Spieler ist noch 0 Pkt eingetragen?
-    if (length(pkt) < 2) {                                          # Ist nur mehr bei einem Spieler kein Ergebnis
+    pkt <- which(punkte == 0)                                       # Bei welchem Spieler ist noch 0 Pkt 
+                                                                    # eingetragen?
+    if (length(pkt) < 2) {                                          # Ist nur mehr bei einem Spieler kein 
+                                                                    # Ergebnis
       punkte[pkt] <- 120 - sum(punkte)                              # eingetragen, dann berechne es 
-      numInp <- c("pkt1", "pkt2", "pkt3", "pkt4")                   # suche dir aus allen Spielern das richtige Feld
+      numInp <- c("pkt1", "pkt2", "pkt3", "pkt4")                   # suche dir aus allen Spielern das
+                                                                    # richtige Feld
       updateNumericInput(session, numInp[pkt], value = punkte[pkt]) # heraus und trage das Ergebnis ein
     }
   }
 
-#'#################################################################################################################    
+#'##########################################################################################################
 #' Funktion: checkPoints() - testet, ob die Punktesumme 120 ergibt
 #'
 #' @return logical - TRUE, wenn die Gesamtpunktzahl 120 ergibt, sonst FALSE
 #' @export keiner
 #'
 #' @examples die vier Spieler zählen geben 20, 20, 60, 21 Punkte ein -> FALSE
-#'#################################################################################################################  
+#'##########################################################################################################
   
   checkPoints <- function() {
     return(sum(c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)) == 120)
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: getSpieler() - findet den oder die Spieler, mindestens 1, maximal 2
 #'
 #' @return Vektor, der die Spieler enthält
 #' @export keine
 #'
 #' @examples Spieler 1 und 3 waren Spieler -> c(1, 3)
-#'#################################################################################################################
+#'##########################################################################################################
 
   getSpieler <- function() {
     partner <- c(input$sp1, input$sp2, input$sp3, input$sp4)  # Nimm alle Spieler und ...
@@ -286,14 +305,14 @@ shinyServer(function(input, output, session) {
     return(spielerPartner)
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: getNichtSpieler() - findet die Nichtspieler heraus, mindestens 2
 #'
 #' @return Vektor, der die Nichtspieler enthält
 #' @export
 #'
 #' @examples Sieler 2,3 und 4 waren nicht Spieler -> c(2, 3, 4)
-#'#################################################################################################################
+#'##########################################################################################################
 
   getNichtSpieler <- function() {
     partner <- c(input$sp1, input$sp2, input$sp3, input$sp4)  # Nimm alle Spieler und ...
@@ -302,7 +321,7 @@ shinyServer(function(input, output, session) {
   }
 
 
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funkction: checkSpielerAnzahl() - testet, ob die ausgewälten Spieler, d.h. die Anzahl der Spieler
 #'tatsächlich auch zum angegebenen Spiel passen
 #'
@@ -310,7 +329,7 @@ shinyServer(function(input, output, session) {
 #' @export
 #'
 #' @examples Solo -> 2 Spieler angeklickt -> FALSE, Sauspiel -> 2 Spieler angeklickt -> TRUE
-#'#################################################################################################################
+#'##########################################################################################################
 
   checkSpielerZahl <- function() {
     sp <- c(input$sp1, input$sp2, input$sp3, input$sp4)       # Nimm alle Spieler...
@@ -329,44 +348,46 @@ shinyServer(function(input, output, session) {
     )
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: calculatePunkte() - berechnet die Punkte von Spieler und Nichtspieler
 #'
 #' @return Vektor, der die Punkte enthält. 1. Stelle: Spieler, 2. Stelle: Nichtspieler
 #' @export
 #'
-#' @examples Spieler gemeinsam 65 Punkte, Nichtspieler gemeinsam 55 Punkte -> c(65, 55), Spieleranzahl stimmt nicht
-#' -> c(-1, -1)
-#'#################################################################################################################
+#' @examples Spieler gemeinsam 65 Punkte, Nichtspieler gemeinsam 55 Punkte -> c(65, 55), Spieleranzahl 
+#'           stimmt nicht -> c(-1, -1)
+#'##########################################################################################################
 
   calculatePunkte <- function() {
     ergebnis <- c(-1, -1)
     if (checkSpielerZahl()) {                                 # Wenn die Spielerzahl stimmt ...
       p <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)  # ... nimm alle Spieler...
       pktSpieler <- sum(p[getSpieler()])                      # ... summiere die Punkte der Spieler...
-      pktNichtSpieler <- sum(p[getNichtSpieler()])            # ... und summiere die Punkte der Nicht-Spieler ...
+      pktNichtSpieler <- sum(p[getNichtSpieler()])            # ... und summiere die Punkte der 
+                                                              #     Nicht-Spieler ...
       ergebnis <- c(pktSpieler, pktNichtSpieler)              # ... und bastle eine Ergebnisvektor
     }
     return(ergebnis)
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: is.Schneider() - testet, ob eine Spielerpartei weniger als 30 Punkte hat
 #'
 #' @param punkte, voreingestellt calculatePunkte(), hier werden für die Spielerparteien bereits die Punkte
 #' berechnet. 
 #'
-#' @return logical - wenn Spieler oder Nichtspieler weniger als 30 Pkt haben, zählt das als Schnieder: TRUE/FALSE
+#' @return logical - wenn Spieler oder Nichtspieler weniger als 30 Pkt haben, zählt das als Schnieder: 
+#'                   TRUE/FALSE
 #' @export keiner
 #'
 #' @examples c(110, 10) -> TRUE, c(80, 40) -> FALSE, c(40, 80) -> FALSE
-#'#################################################################################################################
+#'##########################################################################################################
   
   is.Schneider <- function(punkte = calculatePunkte()) {
     return(length(punkte[punkte < 30]) > 0)
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: is.Schwarz() - testet, ob eine Spielerpartei 0 Punkte hat
 #'
 #' @param punkte, voreingestellt calculatePunkte(), hier werden für die Spielerparteien bereits die Punkte
@@ -376,22 +397,22 @@ shinyServer(function(input, output, session) {
 #' @export keiner
 #'
 #' @examples punkte = c(0, 120) -> TRUE, punkte = c(120, 0) -> TRUE, punkte(110, 10) -> FALSE
-#'#################################################################################################################
+#'##########################################################################################################
   
   is.Schwarz <- function(punkte = calculatePunkte()) {
     return(length(punkte[punkte < 1]) > 0)
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: findWinner() - findet heraus, wer gewonnen hat, Spieler oder Nichtspieler 
 #'
-#' @return Vektor, der jeden Spieler den Multiplikator 1 oder -1 zurückgibt, mit der Tarif verrechnet und aufsum-
-#' miert wird
+#' @return Vektor, der jeden Spieler den Multiplikator 1 oder -1 zurückgibt, mit der Tarif verrechnet und 
+#'         aufsummiert wird
 #' @export
 #'
 #' @examples Spieler 1 und 3 haben gewonnen -< c(1, -1, 1, -1), NichtSpieler 2 und 4 haben gewonnen -> 
 #' c(-1, 1, -1, 1)
-#'#################################################################################################################
+#'##########################################################################################################
 
   findWinner <- function() {
     # update der Spieler/Nichtspieler
@@ -413,18 +434,19 @@ shinyServer(function(input, output, session) {
     return(hatGespielt)
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: calculateProfit() - berechnet für die gespielte Runde den Gewinn
 #'
 #' @return Vektor, der den Gewinn jeweils für die spieler enthält - je nachdem, ob gewonnen oder verloren 
 #' @export
 #'
 #' @examples Spieler 1 und 2 gewinnen das Sauspiel mit 3 Laufenden -> 40 Cent -> c(40, 40, -40, -40)
-#'#################################################################################################################
+#'##########################################################################################################
  
   calculateProfit <- function() {
     # Berechne den Tarif für das Spiel
-    gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider()) + tarif[1] * as.numeric(is.Schwarz()) + tarif[1] * as.numeric(input$anzahlLaufende)
+    gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider()) + 
+          tarif[1] * as.numeric(is.Schwarz()) + tarif[1] * as.numeric(input$anzahlLaufende)
     
     # Lege fest wer was bekommt oder bezahlen muß
     profit <-  findWinner() * gt * (2 ^ (input$anzahlGelegt + as.integer(input$soloArt)))
@@ -432,21 +454,22 @@ shinyServer(function(input, output, session) {
     return(profit)
   }
   
-#'#################################################################################################################
+#'##########################################################################################################
 #' Funktion: updateTabelleGrafik() - zeichnet die Tabelle und den graphischen Spielverlauf neu
 #'
 #' @return
 #' @export
 #'
 #' @examples
-#'#################################################################################################################
+#'##########################################################################################################
 
   updateTabelleGrafik <- function() {
     output$gewinnTabelle <- renderDataTable(spielverlauf)
     output$gewinnPlot <- renderPlot({
       y.min <- min(min(spielverlauf[,1]), min(spielverlauf[,2]), min(spielverlauf[,3]), min(spielverlauf[,4]))
       y.max <- max(max(spielverlauf[,1]), max(spielverlauf[,2]), max(spielverlauf[,3]), max(spielverlauf[,4]))
-      plot(spielverlauf[,1], type = "l", lwd = 2, col = spielerFarbe[1], xlab = "Spiel", ylab = "Gewinn", main = "Spielverlauf", ylim = c(y.min, y.max))
+      plot(spielverlauf[,1], type = "l", lwd = 2, col = spielerFarbe[1], xlab = "Spiel", 
+           ylab = "Gewinn", main = "Spielverlauf", ylim = c(y.min, y.max))
       lines(spielverlauf[,2], col = spielerFarbe[2], lwd = 2)
       lines(spielverlauf[,3], col = spielerFarbe[3], lwd = 2)
       lines(spielverlauf[,4], col = spielerFarbe[4], lwd = 2)
@@ -472,19 +495,21 @@ shinyServer(function(input, output, session) {
   # Initialisierung der Variablen
   gr <- init()
   
-  # Anzeige der Spielgruppenauswahl
+  # Anzeige der Spielgruppenauswahl mit der gelieferten aktiven Gruppe
   updateSelectInput(session, "gruppeWaehlen", choices = spielrunde, selected = gr)
   
-  # Anzeige der Spielgruppendaten
+  # Anzeige der Spielgruppendaten der aktiven Gruppe
   displayGroup()
   
-  # --- Spielliste einstellen ------------------------------------------------------------------------------
+  # --- Eventhandling -------------------------------------------------------------------------------------
+  
+  # Spielliste einstellen
   observeEvent(input$spielArt1, {
     updateSelectInput(session, "spielArt2", choices = spiele[[as.numeric(input$spielArt1)]])
     updateRadioButtons(session, "soloArt", selected = 0)    # Wieder zurückstellen auf den Basistarif
   })
   
-  # --- Punkte in die Berechnungsliste eintragen -----------------------------------------------------------
+  # Punkte in die Berechnungsliste eintragen
   observeEvent(input$pkt1, {
     sumPoints()
   })
@@ -501,7 +526,7 @@ shinyServer(function(input, output, session) {
     sumPoints()
   })
   
-  # --- Daten speichern und Eingabe zurücksetzen -----------------------------------------------------------
+  # Daten speichern und Eingabe zurücksetzen
   observeEvent(input$spielAufschreiben, {
     # Gewinn der Spielrunde berechnen
     p <- calculateProfit()
@@ -541,7 +566,7 @@ shinyServer(function(input, output, session) {
 
   })
   
-  # --- Letzten Eintrag zurücksetzen -----------------------------------------------------------------------
+  # Letzten Eintrag zurücksetzen
   observeEvent(input$letztesKorrigieren, {
     spielverlauf <<- spielverlauf[-c(nrow(spielverlauf)),]
     
@@ -550,7 +575,7 @@ shinyServer(function(input, output, session) {
     reset()
   })
   
-  # --- Spielgruppe wechseln -------------------------------------------------------------------------------
+  # Spielgruppe wechseln
   observeEvent(input$gruppeWaehlen, {
     saveActiveGroup()
     
@@ -633,4 +658,16 @@ shinyServer(function(input, output, session) {
   observeEvent(input$testCalculateProfit, {
     output$ergebnisCalculateProfit <- renderText({ paste("Gewinn: ", calculateProfit())})
   })
+  
+  # --- Bei Sessionende ... --------------------------------------------------------------------------------
+  
+  session$onSessionEnded(function() {
+    
+    saveActiveGroup()
+    print("Aktive Gruppe abgespeichert ...")
+    
+    print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
+    stopApp()
+  })
+  
 })

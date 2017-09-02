@@ -28,14 +28,17 @@ fileGroups <- "schafkopfrunden.csv"
 shinyServer(function(input, output, session) {
   
   # --- Sessionbezogene Variablen --------------------------------------------------------------------------
-  groupsDF <- NULL
-  spielrunde <- NULL
-  spieler <- NULL
-  spielerFarbe <- NULL
-  tarif <- NULL
-  spielverlauf <- NULL
+
+  groupsDF <- NULL         # ... beinhaltet die Spielgruppen und die jeweiligen Eigenschaften
+  spielrunde <- NULL       # ... beinhaltet die Namen der Spielgruppen als Listen
+  spieler <- NULL          # ... beinhaltet die Namen der Spieler
+  spielerFarbe <- NULL     # ... beinhaltet die Farben für Darstellung der Spieler in der graphischen
+                           #     Darstellung
+  tarif <- NULL            # ... beinhaltet den für die Gruppe gültigen Tarif
+  spielverlauf <- NULL     # ... beinhaltet den gesamten Spielverlauf
   
   # --- Bei Sessionende ... --------------------------------------------------------------------------------
+
   session$onSessionEnded(function() {
     # TODO: ggf. nochmaliges Speichern
     print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
@@ -97,9 +100,32 @@ shinyServer(function(input, output, session) {
       ))
   }
   
+#'#################################################################################################################
+#' Funktion: getActiveGroup() - liefert die Position der aktiven Gruppe im Dataframe zurück
+#'
+#' @return integer - Zeile der zuletzt als aktiv gesetzten Gruppe im Dataframe
+#' @export keine
+#'
+#' @examples zuletzt aktive Gruppe (groupsDF$zuletztAktiv) steht in Zeile 2 auf 1 -> Rückgabe-Wert: 2
+#'#################################################################################################################
+
+  getActiveGroup <- function() {
+    return(which(groupsDF$zuletztAktiv == 1))
+  }
+
+#'#################################################################################################################    
+#' Funktion: setActiveGroup() - setzt die Session-variablen auf die aktive Gruppe
+#'
+#' @return keine
+#' @export keine
+#'
+#' @examples
+#'#################################################################################################################
+
   setActiveGroup <- function() {
     
-    nr <- which(groupsDF$zuletztAktiv == 1)
+    nr <- getActiveGroup()
+    
     gruppe <- groupsDF[nr,]
     
     spieler <<- c(gruppe[1, 'Spieler1'], gruppe[1, 'Spieler2'], 
@@ -114,11 +140,18 @@ shinyServer(function(input, output, session) {
     
     spielverlauf <<- loadSpielverlauf(gruppe[1, 'DateiSpielliste'])
     
-    return(nr)
-    
   }
   
-  init <- function() {
+#'#################################################################################################################
+#' Funktion: init() - Lädt die Spielgruppen und initialisiert Variablen
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'#################################################################################################################
+
+    init <- function() {
     
     groupsDF <<- loadGroups()
     
@@ -138,10 +171,10 @@ shinyServer(function(input, output, session) {
       groupsDF$DateiSpielliste <<- as.character(groupsDF$DateiSpielliste)
 
       spielrunde <<- as.list(groupsDF[,'Gruppe'])
-    
-      nr <- setActiveGroup()
+      
+      setActiveGroup()
 
-      return(spielrunde[[nr]])
+      return(spielrunde[[getActiveGroup()]])
     
     } else {
       return(NULL)
@@ -405,7 +438,7 @@ shinyServer(function(input, output, session) {
     })    
   }
   
-  # --- Einstellen -----------------------------------------------------------------------------------------
+  # --- Initialisierung der Gruppeninfo --------------------------------------------------------------------
   
   # Initialisierung der Variablen
   gr <- init()
@@ -423,15 +456,13 @@ shinyServer(function(input, output, session) {
   updateNumericInput(session, "tarifSpiel", value = tarif[1])
   updateNumericInput(session, "tarifSolo", value = tarif[3])
   
-  # --- Events ---------------------------------------------------------------------------------------------
-  
-  # Spielliste einstellen
+  # --- Spielliste einstellen ------------------------------------------------------------------------------
   observeEvent(input$spielArt1, {
     updateSelectInput(session, "spielArt2", choices = spiele[[as.numeric(input$spielArt1)]])
     updateRadioButtons(session, "soloArt", selected = 0)    # Wieder zurückstellen auf den Basistarif
   })
   
-  # Punkte in die Berechnungsliste eintragen
+  # --- Punkte in die Berechnungsliste eintragen -----------------------------------------------------------
   observeEvent(input$pkt1, {
     sumPoints()
   })
@@ -448,7 +479,7 @@ shinyServer(function(input, output, session) {
     sumPoints()
   })
   
-  # Daten speichern und Eingabe zurücksetzen
+  # --- Daten speichern und Eingabe zurücksetzen -----------------------------------------------------------
   observeEvent(input$spielAufschreiben, {
     # Gewinn der Spielrunde berechnen
     p <- calculateProfit()
@@ -477,7 +508,7 @@ shinyServer(function(input, output, session) {
         spielverlauf <<- rbind(spielverlauf, df)
       }
       
-      # --- Ausgabe ------------------------------------------------------------------------------------------
+      # Ausgabe
       print(df)
       updateTabelleGrafik()
       reset()
@@ -488,14 +519,33 @@ shinyServer(function(input, output, session) {
 
   })
   
-  # Letzten Eintrag zurücksetzen
+  # --- Letzten Eintrag zurücksetzen -----------------------------------------------------------------------
   observeEvent(input$letztesKorrigieren, {
     spielverlauf <<- spielverlauf[-c(nrow(spielverlauf)),]
     
-    # --- Ausgabe nach Korrektur ---------------------------------------------------------------------------
+    # Ausgabe nach Korrektur
     updateTabelleGrafik()
     reset()
   })
+  
+  # --- Spielgruppe wechseln -------------------------------------------------------------------------------
+  observeEvent(input$gruppeWaehlen, {
+    nr <- which(groupsDF$Gruppe == input$gruppeWaehlen)
+    print(paste("jetzt ...", nr))
+    groupsDF$zuletztAktiv <<- 0
+    groupsDF[nr, 'zuletztAktiv'] <<- 1
+    print("Gruppe Wählen")
+    setActiveGroup()
+    # ... der Spieler
+    renderPlayer()
+    
+    # ... der Spielart
+    updateSelectInput(session, "spielArt2", choices = spiele[[1]])
+    
+    # ... der Tarife
+    updateNumericInput(session, "tarifSpiel", value = tarif[1])
+    updateNumericInput(session, "tarifSolo", value = tarif[3])
+  }, ignoreInit = TRUE)
 
   # --- Modultests ... -------------------------------------------------------------------------------------
   

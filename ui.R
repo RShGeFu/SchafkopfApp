@@ -41,8 +41,8 @@ shinyUI(fluidPage(
     column(9, wellPanel(
                 fluidRow(
                   column(4, selectInput("gruppeWaehlen", "Schafkopfrunde", c("A", "B", "C")) ),
-                  column(1, numericInput("tarifSpiel", "Tarif Spiel", NULL)),
-                  column(1, numericInput("tarifSolo", "Tarif Solo", NULL)),
+                  column(1, numericInput("tarifSpiel", "Tarif Spiel", value = 5)),
+                  column(1, numericInput("tarifSolo", "Tarif Solo", value = 15)),
                   column(4),
                   column(2, actionButton("neueGruppe","Neue Schafkopfrunde", width = "100%"), br(), br(),
                             actionButton("loescheGruppe", "Schafkkopfrunde löschen", width = "100%"))

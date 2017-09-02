@@ -53,6 +53,8 @@ shinyServer(function(input, output, session) {
   }
   
   loadSpielverlauf <- function(fileSpielVerlauf) {
+    print("Spielverlauf laden")
+    print(fileSpielVerlauf)
     return(NULL) 
   }
   
@@ -80,6 +82,8 @@ shinyServer(function(input, output, session) {
     
     if (file.exists(fileSKR))
       runden <- read.csv(fileSKR, sep = ";", header = TRUE)
+    else
+      print("Gruppe erstellen")
     
     return(runden)
   }
@@ -108,7 +112,7 @@ shinyServer(function(input, output, session) {
                 0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
                 gruppe[1, 'GrundtarifSolo'])
     
-    spielverlauf <<- loadSpielverlauf(groupsDF$DateiSpielliste)
+    spielverlauf <<- loadSpielverlauf(gruppe[1, 'DateiSpielliste'])
     
     return(nr)
     
@@ -117,24 +121,31 @@ shinyServer(function(input, output, session) {
   init <- function() {
     
     groupsDF <<- loadGroups()
-    groupsDF$Gruppe <<- as.character(groupsDF$Gruppe)
-    groupsDF$Spieler1 <<- as.character(groupsDF$Spieler1)
-    groupsDF$Spieler2 <<- as.character(groupsDF$Spieler2)
-    groupsDF$Spieler3 <<- as.character(groupsDF$Spieler3)
-    groupsDF$Spieler4 <<- as.character(groupsDF$Spieler4)
-    groupsDF$FarbeSp1 <<- as.character(groupsDF$FarbeSp1)
-    groupsDF$FarbeSp2 <<- as.character(groupsDF$FarbeSp2)
-    groupsDF$FarbeSp3 <<- as.character(groupsDF$FarbeSp3)
-    groupsDF$FarbeSp4 <<- as.character(groupsDF$FarbeSp4)
-    groupsDF$GrundtarifSpiel <<- as.integer(groupsDF$GrundtarifSpiel)
-    groupsDF$GrundtarifSolo <<- as.integer(groupsDF$GrundtarifSolo)
-    groupsDF$DateiSpielliste <<- as.character(groupsDF$DateiSpielliste)
-
-    spielrunde <<- as.list(groupsDF[,'Gruppe'])
     
-    nr <- setActiveGroup()
+    if (!is.null(groupsDF)) {
+      
+      groupsDF$Gruppe <<- as.character(groupsDF$Gruppe)
+      groupsDF$Spieler1 <<- as.character(groupsDF$Spieler1)
+      groupsDF$Spieler2 <<- as.character(groupsDF$Spieler2)
+      groupsDF$Spieler3 <<- as.character(groupsDF$Spieler3)
+      groupsDF$Spieler4 <<- as.character(groupsDF$Spieler4)
+      groupsDF$FarbeSp1 <<- as.character(groupsDF$FarbeSp1)
+      groupsDF$FarbeSp2 <<- as.character(groupsDF$FarbeSp2)
+      groupsDF$FarbeSp3 <<- as.character(groupsDF$FarbeSp3)
+      groupsDF$FarbeSp4 <<- as.character(groupsDF$FarbeSp4)
+      groupsDF$GrundtarifSpiel <<- as.integer(groupsDF$GrundtarifSpiel)
+      groupsDF$GrundtarifSolo <<- as.integer(groupsDF$GrundtarifSolo)
+      groupsDF$DateiSpielliste <<- as.character(groupsDF$DateiSpielliste)
 
-    return(spielrunde[[nr]])
+      spielrunde <<- as.list(groupsDF[,'Gruppe'])
+    
+      nr <- setActiveGroup()
+
+      return(spielrunde[[nr]])
+    
+    } else {
+      return(NULL)
+    }
   }
   
   # --- Sessionbezogene Funktionen -------------------------------------------------------------------------

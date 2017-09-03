@@ -23,10 +23,10 @@ spiele <- list(c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4),
                c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4, "Wenz" = 5, "Farbwenz" = 6, 
                  "Geier" = 7, "Bettler" = 8, "Ramsch" = 9))
 
-fileGroups <- "schafkopfrunden.csv"    # Name für die Steuerungsdatei der Spielrunden
-localMode <- "0"                       # Speichermodus: 0 - die Daten werden in Dateien abgelegt
-dbMode <- "1"                          #                1 - Die Daten werden in einer Datenbank abgelegt
-configMode <- localMode                # Konfiguriert für lokale Speicherung
+fileGroups <- "schafkopfrunden0.csv"    # Name für die Steuerungsdatei der Spielrunden
+localMode <- "0"                        # Speichermodus: 0 - die Daten werden in Dateien abgelegt
+dbMode <- "1"                           #                1 - Die Daten werden in einer Datenbank abgelegt
+configMode <- localMode                 # Konfiguriert für lokale Speicherung
 
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
@@ -40,6 +40,27 @@ shinyServer(function(input, output, session) {
                            #     Darstellung
   tarif <- NULL            # ... beinhaltet den für die Gruppe gültigen Tarif
   spielverlauf <- NULL     # ... beinhaltet den gesamten Spielverlauf
+  
+  # --- Modaldialoge definieren ----------------------------------------------------------------------------
+  
+  gruppeErstellen <- modalDialog(h5("Gruppenname"),
+                                 textInput("grName", NULL, placeholder = "z.B. Die lustigen Vier"),
+                                 h5("Tarife"),
+                                 textInput("tarifSpiel", NULL, placeholder = "Sauspiel"),
+                                 textInput("tarifSolo", NULL, placeholder = "Solo"),
+                                 h5("Spielernamen"),
+                                 textInput("sp1Name", NULL, placeholder = "Spieler 1"),
+                                 textInput("sp2Name", NULL, placeholder = "Spieler 2"),
+                                 textInput("sp3Name", NULL, placeholder = "Spieler 3"),
+                                 textInput("sp4Name", NULL, placeholder = "Spieler 4"),
+                                 h5("Ausgangskapital (in Cent)"),
+                                 textInput("sp1Kapital", NULL, placeholder = "Spieler 1"),
+                                 textInput("sp2Kapital", NULL, placeholder = "Spieler 2"),
+                                 textInput("sp3Kapital", NULL, placeholder = "Spieler 3"),
+                                 textInput("sp4Kapital", NULL, placeholder = "Spieler 4"),
+                                 title = "Wollen Sie eine Spielrunde aufmachen ...",
+                                 footer = tagList(actionButton("modalGruppeErstellenOK", "OK"), 
+                                                  modalButton("Nein")))
   
   # --- Manipulationen der Dataframes und Vektoren ---------------------------------------------------------
   
@@ -99,7 +120,7 @@ shinyServer(function(input, output, session) {
                 0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
                 gruppe[1, 'GrundtarifSolo'])
     
-    spielverlauf <<- loadSpielverlauf(gruppe[1, 'DateiSpielliste'])
+    spielverlauf <<- loadSpielverlauf(fileSpielverlauf = gruppe[1, 'DateiSpielliste'])
     
   }
   
@@ -109,14 +130,24 @@ shinyServer(function(input, output, session) {
     
   }
   
-  loadSpielverlaufByFile <- function() {
+  loadSpielverlaufByFile <- function(fileSpielVerlauf) {
+    spVerlauf <- NULL
     
+    if (file.exists(fileSpielVerlauf)) {
+      spVerlauf <- read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
+      spVerlauf$Zeit <- as.POSIXct(spVerlauf$Zeit)
+    }
+    
+    return(spVerlauf)    
   }
   
-  loadSpielverlauf <- function(fileSpielVerlauf) {
-    print("Spielverlauf laden")
-    print(fileSpielVerlauf)
-    return(NULL) 
+  loadSpielverlauf <- function(mode = configMode, fileSpielverlauf) {
+    return(
+      switch(as.character(mode),
+             "0" = { loadSpielverlaufByFile(fileSpielverlauf) },
+             "1" = { loadSpielverlaufByDB() },
+             default = { NULL }
+      ))
   }
   
   loadGroupsByDB <- function() {
@@ -143,8 +174,9 @@ shinyServer(function(input, output, session) {
     
     if (file.exists(fileSKR))
       runden <- read.csv(fileSKR, sep = ";", header = TRUE)
-    else
-      print("Gruppe erstellen")
+    else {
+      showModal(gruppeErstellen)
+    }
     
     return(runden)
   }
@@ -172,7 +204,7 @@ shinyServer(function(input, output, session) {
     groupsDF <<- loadGroups()
     
     if (!is.null(groupsDF)) {
-      
+      print(groupsDF)
       groupsDF$Gruppe <<- as.character(groupsDF$Gruppe)
       groupsDF$Spieler1 <<- as.character(groupsDF$Spieler1)
       groupsDF$Spieler2 <<- as.character(groupsDF$Spieler2)
@@ -200,16 +232,35 @@ shinyServer(function(input, output, session) {
   # --- Dauerhafte Speicherung -----------------------------------------------------------------------------
   
   saveActiveGroupByDB <- function() {
+    return(FALSE)
   }
   
-  saveActiveGroupByFile <- function() {
+  saveActiveGroupByFile <- function(fileSKR, testExist) {
+    success <- FALSE
+    nr <- getZuletztAktiv()
+    if (testExist) {
+      if (!is.null(groupsDF[nr, 'DateiSpielliste'])) {
+        if (file.exists(groupsDF[nr, 'DateiSpielliste'])) {
+          write.csv2(groupsDF, fileSKR, row.names = FALSE)
+          write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)    
+          success <- TRUE
+        }
+      }
+    } else {
+      write.csv2(groupsDF, fileSKR, row.names = FALSE)
+      write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)    
+      success <- TRUE      
+    }
+    return(success)
   }
 
-  saveActiveGroup <- function(mode = configMode) {
-    switch(as.character(mode),
-           "0" = { saveActiveGroupByFile () },
+  saveActiveGroup <- function(mode = configMode, fileSKR = fileGroups, testExist = FALSE) {
+    return(
+      switch(as.character(mode),
+           "0" = { saveActiveGroupByFile (fileSKR, testExist) },
            "1" = { saveActiveGroupByDB() },
-           default = { }
+           default = { FALSE }
+      )
     )
   }
   
@@ -488,6 +539,9 @@ shinyServer(function(input, output, session) {
     updateNumericInput(session, "tarifSpiel", value = tarif[1])
     updateNumericInput(session, "tarifSolo", value = tarif[3])
     
+    # ... und der Tabelle und des graphischen Spielverlaufs
+    updateTabelleGrafik()
+    
   }
   
   # --- Initialisierung der Gruppeninfo --------------------------------------------------------------------
@@ -542,11 +596,11 @@ shinyServer(function(input, output, session) {
                      input$anzahlGelegt, input$anzahlLaufende,
                      as.numeric(is.Schneider()), as.numeric(is.Schwarz()), Sys.time())
       colnames(df) <- c(spieler,
-                      "Gewinn Sp1", "Gewinn Sp2", "Gewinn Sp3", "Gewinn Sp4",
+                      "GewinnSp1", "GewinnSp2", "GewinnSp3", "GewinnSp4",
                       "Spielart", "Spiel", "Solotarif",
-                      "Punkte Sp1", "Punkte Sp2", "Punkte Sp3", "Punkte Sp4",
+                      "PunkteSp1", "PunkteSp2", "PunkteSp3", "PunkteSp4",
                       "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
-    
+
       # Neuanlegen oder Hinzufügen
       if (is.null(spielverlauf)) {
         spielverlauf <<- df
@@ -577,14 +631,22 @@ shinyServer(function(input, output, session) {
   
   # Spielgruppe wechseln
   observeEvent(input$gruppeWaehlen, {
-    saveActiveGroup()
-    
     nr <- which(groupsDF$Gruppe == input$gruppeWaehlen)
+    print(groupsDF[nr, 'DateiSpielliste'])
+      
+    if (saveActiveGroup(testExist = TRUE)) {
     
-    setZuletztAktiv(nr)
-    setActiveGroup()
-    displayGroup()
+      setZuletztAktiv(nr)
+      setActiveGroup()
+      displayGroup()
+      
+    }
     
+  }, ignoreInit = TRUE)
+  
+  # Modaldialog 'Gruppe erstellen'
+  observeEvent(input$modalGruppeErstellenOK, {
+    removeModal()
   }, ignoreInit = TRUE)
 
   # --- Modultests ... -------------------------------------------------------------------------------------
@@ -663,8 +725,10 @@ shinyServer(function(input, output, session) {
   
   session$onSessionEnded(function() {
     
-    saveActiveGroup()
-    print("Aktive Gruppe abgespeichert ...")
+    if (saveActiveGroup(testExist = TRUE))
+      print("Aktive Gruppe abgespeichert ...")
+    else
+      print("Aktive Gruppe nicht abgespeichert ...")
     
     print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
     stopApp()

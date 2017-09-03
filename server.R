@@ -46,8 +46,8 @@ shinyServer(function(input, output, session) {
   gruppeErstellen <- modalDialog(h5("Gruppenname"),
                                  textInput("grName", NULL, placeholder = "z.B. Die lustigen Vier"),
                                  h5("Tarife"),
-                                 textInput("tarifSpiel", NULL, placeholder = "Sauspiel"),
-                                 textInput("tarifSolo", NULL, placeholder = "Solo"),
+                                 textInput("tarifSpielErst", NULL, placeholder = "Sauspiel"),
+                                 textInput("tarifSoloErst", NULL, placeholder = "Solo"),
                                  h5("Spielernamen"),
                                  textInput("sp1Name", NULL, placeholder = "Spieler 1"),
                                  textInput("sp2Name", NULL, placeholder = "Spieler 2"),
@@ -176,6 +176,7 @@ shinyServer(function(input, output, session) {
       runden <- read.csv(fileSKR, sep = ";", header = TRUE)
     else {
       showModal(gruppeErstellen)
+      runden <- groupsDF
     }
     
     return(runden)
@@ -612,6 +613,9 @@ shinyServer(function(input, output, session) {
       # Ausgabe
       print(df)
       updateTabelleGrafik()
+      
+      saveActiveGroup()
+      
       reset()
       
     } else {
@@ -644,9 +648,62 @@ shinyServer(function(input, output, session) {
     
   }, ignoreInit = TRUE)
   
+  # Neue Spielgruppe erstellen und anfügen
+  observeEvent(input$neueGruppe, {
+    showModal(gruppeErstellen)
+  }, ignoreInit = TRUE)
+  
   # Modaldialog 'Gruppe erstellen'
   observeEvent(input$modalGruppeErstellenOK, {
+    # Dateiname für Spielverlauf benennen
+    fileSpielverlauf <- paste0(input$grName, "_SK.csv")
+    # Dataframe herrichten
+    df <- data.frame(input$grName, input$sp1Name, input$sp2Name, input$sp3Name, input$sp4Name,
+                     input$sp1Kapital, input$sp2Kapital, input$sp3Kapital, input$sp4Kapital,
+                     Sys.time(), input$tarifSpielErst, input$tarifSoloErst, fileSpielverlauf,
+                     "red", "green", "blue", "orange", 1)
+    colnames(df) <- c("Gruppe","Spieler1","Spieler2","Spieler3","Spieler4",
+                      "Startkapital1","Startkapital2","Startkapital3","Startkapital4",
+                      "Beginn","GrundtarifSpiel","GrundtarifSolo","DateiSpielliste",
+                      "FarbeSp1","FarbeSp2","FarbeSp3","FarbeSp4","zuletztAktiv")
+    # Dataframe entweder allgemein definieren oder an bereits existenten anhängen
+    if (is.null(groupsDF)) {
+      groupsDF <<- df
+    } else {
+      groupsDF$zuletztAktiv <<- 0
+      groupsDF <<- rbind(groupsDF, df)
+    }
+    # Allgemeinen Dataframe Typen zuordnen
+    groupsDF$Gruppe <<- as.character(groupsDF$Gruppe)
+    groupsDF$Spieler1 <<- as.character(groupsDF$Spieler1)
+    groupsDF$Spieler2 <<- as.character(groupsDF$Spieler2)
+    groupsDF$Spieler3 <<- as.character(groupsDF$Spieler3)
+    groupsDF$Spieler4 <<- as.character(groupsDF$Spieler4)
+    groupsDF$FarbeSp1 <<- as.character(groupsDF$FarbeSp1)
+    groupsDF$FarbeSp2 <<- as.character(groupsDF$FarbeSp2)
+    groupsDF$FarbeSp3 <<- as.character(groupsDF$FarbeSp3)
+    groupsDF$FarbeSp4 <<- as.character(groupsDF$FarbeSp4)
+    groupsDF$GrundtarifSpiel <<- as.integer(as.character(groupsDF$GrundtarifSpiel))
+    groupsDF$GrundtarifSolo <<- as.integer(as.character(groupsDF$GrundtarifSolo))
+    groupsDF$DateiSpielliste <<- as.character(groupsDF$DateiSpielliste)
+    print(str(groupsDF))
+    
+    # Spielrunde aktualisieren
+    spielrunde <<- as.list(groupsDF[,'Gruppe'])
+    
+    # Modaldialog schließen
     removeModal()
+    
+    # Aktive Gruppe setzen bzw. aktualisieren
+    setActiveGroup()
+    
+    # Anzeige der Spielgruppenauswahl mit der gelieferten aktiven Gruppe
+    updateSelectInput(session, "gruppeWaehlen", choices = spielrunde, 
+                      selected = groupsDF[getZuletztAktiv(), 'Gruppe'])
+    
+    # Anzeige der Spielgruppendaten der aktiven Gruppe
+    displayGroup()
+    
   }, ignoreInit = TRUE)
 
   # --- Modultests ... -------------------------------------------------------------------------------------

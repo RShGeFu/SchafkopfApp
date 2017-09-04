@@ -720,6 +720,11 @@ shinyServer(function(input, output, session) {
     removeModal()
     
   }, ignoreInit = TRUE)
+  
+  # Die ausgewählte Gruppe aus der Liste löschen
+  observeEvent(input$loescheGruppe, {
+    print("Gruppe löschen")
+  })
 
   # --- Modultests ... -------------------------------------------------------------------------------------
   

@@ -634,9 +634,12 @@ shinyServer(function(input, output, session) {
                       "PunkteSp1", "PunkteSp2", "PunkteSp3", "PunkteSp4",
                       "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
 
-      # Neuanlegen oder Hinzufügen
-      if (is.null(spielverlauf)) {
+      # Neuanlegen ... 
+      if (is.null(spielverlauf) | nrow(spielverlauf) == 0) {
+        sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
+        df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
         spielverlauf <<- df
+      # ...oder Hinzufügen
       } else {
         df[spieler] <- df[spieler] + spielverlauf[nrow(spielverlauf), spieler]
         spielverlauf <<- rbind(spielverlauf, df)

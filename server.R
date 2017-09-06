@@ -635,7 +635,7 @@ shinyServer(function(input, output, session) {
                       "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
 
       # Neuanlegen ... 
-      if (is.null(spielverlauf) | nrow(spielverlauf) == 0) {
+      if (is.null(spielverlauf) || nrow(spielverlauf) == 0) {
         sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
         df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
         spielverlauf <<- df
@@ -674,13 +674,10 @@ shinyServer(function(input, output, session) {
   # Spielgruppe wechseln
   observeEvent(input$gruppeWaehlen, {
     nr <- which(groupsDF$Gruppe == input$gruppeWaehlen)
-      
-    if (saveActiveGroup(testExist = TRUE)) {
-      setZuletztAktiv(nr)
-      setActiveGroup()
-      displayGroup()
-    }
-    
+    saveActiveGroup(testExist = TRUE)
+    setZuletztAktiv(nr)
+    setActiveGroup()
+    displayGroup()
   }, ignoreInit = TRUE)
   
   # Neue Spielgruppe erstellen und anfügen
@@ -721,9 +718,14 @@ shinyServer(function(input, output, session) {
     
   }, ignoreInit = TRUE)
   
-  # Die ausgewählte Gruppe aus der Liste löschen
+  # Die ausgewählte Gruppe aus der Liste löschen -------------
   observeEvent(input$loescheGruppe, {
     print("Gruppe löschen")
+    file.remove(groupsDF[getZuletztAktiv(), 'DateiSpielliste'])
+    groupsDF <<- groupsDF[c(-getZuletztAktiv()), ]
+    setZuletztAktiv(1)
+    setAndDisplay()
+    saveActiveGroup()
   })
 
   # --- Modultests ... -------------------------------------------------------------------------------------

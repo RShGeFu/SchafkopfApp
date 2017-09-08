@@ -62,6 +62,11 @@ shinyServer(function(input, output, session) {
                                  footer = tagList(actionButton("modalGruppeErstellenOK", "OK"), 
                                                   modalButton("Nein")))
   
+  gruppeWirklichLoeschen <- modalDialog(h4("Wollen Sie die Spielgruppe wirklich löschen?"),
+                                        title = "Bitte Vorsicht!",
+                                        footer = tagList(actionButton("modalWLoesch", "Ja!"),
+                                                         modalButton("Nein!")))
+  
   # --- Manipulationen der Dataframes und Vektoren ---------------------------------------------------------
   
   #'########################################################################################################
@@ -142,6 +147,10 @@ shinyServer(function(input, output, session) {
     groupsDF$FarbeSp2 <<- as.character(groupsDF$FarbeSp2)
     groupsDF$FarbeSp3 <<- as.character(groupsDF$FarbeSp3)
     groupsDF$FarbeSp4 <<- as.character(groupsDF$FarbeSp4)
+    groupsDF$Startkapital1 <<- as.integer(as.character(groupsDF$Startkapital1))
+    groupsDF$Startkapital2 <<- as.integer(as.character(groupsDF$Startkapital2))
+    groupsDF$Startkapital3 <<- as.integer(as.character(groupsDF$Startkapital3))
+    groupsDF$Startkapital4 <<- as.integer(as.character(groupsDF$Startkapital4))
     groupsDF$GrundtarifSpiel <<- as.integer(as.character(groupsDF$GrundtarifSpiel))
     groupsDF$GrundtarifSolo <<- as.integer(as.character(groupsDF$GrundtarifSolo))
     groupsDF$DateiSpielliste <<- as.character(groupsDF$DateiSpielliste)    
@@ -427,6 +436,19 @@ shinyServer(function(input, output, session) {
   }
   
   #'##########################################################################################################
+  #' Funktion: is.Bettler() - gibt an, ob ein Solo 'Bettler' gespielt wurde
+  #'
+  #' @return logical - TRUE für Einstellung Solo/Bettler
+  #' @export kein
+  #'
+  #' @examples s.o.
+  #'##########################################################################################################
+  
+  is.Bettler <- function() {
+    return(input$spielArt2 == "8")
+  }
+  
+  #'##########################################################################################################
   #' Funktion: findWinner() - findet heraus, wer gewonnen hat, Spieler oder Nichtspieler 
   #'
   #' @return Vektor, der jeden Spieler den Multiplikator 1 oder -1 zurückgibt, mit der Tarif verrechnet und 
@@ -445,14 +467,18 @@ shinyServer(function(input, output, session) {
     pkt <- calculatePunkte()
     
     # Wenn alle Regeln eingehalten wurden und die Summe der Punkte 120 ergibt
-    if ((length(which(pkt==-1)) == 0) & checkPoints()) 
+    if ((length(which(pkt==-1)) == 0) & checkPoints()) {
     
       # dann lege die Gewinner und Verlierer mit dem jeweiligen Tariffaktor fest
-      hatGespielt <- hatGespielt * ifelse(pkt[1] < 61, -1, 1)
-    else
-    
+      if (is.Bettler()) {   # Sondersituation 'Bettler'
+        hatGespielt <- hatGespielt * ifelse(pkt[1] > 0, -1, 1)
+      } else {
+        hatGespielt <- hatGespielt * ifelse(pkt[1] < 61, -1, 1) 
+      }
+    } else {
       # ansonsten 0, dann wird nichts berechnet
       hatGespielt <- c(0,0,0,0)
+    }
     
     return(hatGespielt)
   }
@@ -468,8 +494,8 @@ shinyServer(function(input, output, session) {
  
   calculateProfit <- function() {
     # Berechne den Tarif für das Spiel
-    gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider()) + 
-          tarif[1] * as.numeric(is.Schwarz()) + tarif[1] * as.numeric(input$anzahlLaufende)
+    gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider() & !is.Bettler()) + 
+          tarif[1] * as.numeric(is.Schwarz() & !is.Bettler()) + tarif[1] * as.numeric(input$anzahlLaufende)
     
     # Lege fest wer was bekommt oder bezahlen muß
     profit <-  findWinner() * gt * (2 ^ (input$anzahlGelegt + as.integer(input$soloArt)))
@@ -506,6 +532,7 @@ shinyServer(function(input, output, session) {
   
   reset <- function() {
     updateRadioButtons(session, "spielArt1", selected = 1)
+    updateSelectInput(session, "spielArt2", selected = 1)
     updateRadioButtons(session, "soloArt", selected = 0)
     updateNumericInput(session, "pkt1", value = 0)
     updateNumericInput(session, "pkt2", value = 0)
@@ -587,9 +614,12 @@ shinyServer(function(input, output, session) {
       # Aktive Gruppe setzen bzw. aktualisieren
       setActiveGroup()
     
-      # Anzeige der Spielgruppenauswahl mit der gelieferten aktiven Gruppe
+      # Anzeige der Spielgruppenauswahl mit der gelieferten aktiven Gruppe und Tarife
+      updateNumericInput(session, "tarifSpiel", value = tarif[1])
+      updateNumericInput(session, "tarifSolo", value = tarif[3])
       updateSelectInput(session, "gruppeWaehlen", choices = spielrunde, 
                         selected = groupsDF[getZuletztAktiv(), 'Gruppe'])
+
     
       # Anzeige der Spielgruppendaten der aktiven Gruppe
       displayGroup()
@@ -597,11 +627,69 @@ shinyServer(function(input, output, session) {
     
   }
   
+  # --- Support-Funktionen --------------------------------------------------------------------------------
+
+  #'#######################################################################################################  
+  #' Funktion: benenneDoppelteSpielerNeu() - prüft auf doppelt eingegebene oder fehlende Spielernamen und 
+  #'                                         ergänzte diese
+  #'
+  #' @param neueSpieler Vector - enthält die eingegebenen Spielernamen
+  #'
+  #' @return Vector, ergänzte Spielernamen
+  #' @export
+  #'
+  #' @examples neueSpieler("qw, "qw", "", "er") -> neueSpieler("qw", "qw2", "Spieler3", "er")
+  #'#######################################################################################################
+  
+  benenneDoppelteSpielerNeu <- function(neueSpieler) {
+    # Position des Spielers in der Liste ...
+    addNum <- seq(1:length(neueSpieler))
+    
+    # Wer hat keinen Namen eingegeben bekommen?
+    keinName <- which(neueSpieler == "")
+    neueSpieler[keinName] <- paste0("Spieler", addNum[keinName])
+    
+    # Welcher Name ist doppelt eingegeben worden
+    neu <- which(duplicated(neueSpieler))
+    neueSpieler[neu] <- paste0(neueSpieler[neu], addNum[neu])
+    
+    return(neueSpieler)
+  }
+  
+#'#######################################################################################################
+#' Funktion: testeStartkapitalAufNull() - wenn für das Startkapital nichts eingegeben ist, wird dafür
+#'                                        0 gesetzt
+#'
+#' @param sk - Vektor, beinhaltet das jeweilige Startkapital der einzelnen Spieler
+#'
+#' @return korrigierter Vektor mit den auf gesetzten Startkapitalen
+#' @export keiner
+#'
+#' @examples c("", 2, "", 40) -> c(0, 2, 0, 40)
+#'#######################################################################################################
+  
+  testeStartkapitalAufNull <- function(sk) {
+    return(ifelse(sk == "", 0, sk))
+  }
+  
   # --- Initialisierung -----------------------------------------------------------------------------------
   
   init()
 
   # --- Eventhandling -------------------------------------------------------------------------------------
+  
+  # Tarifdaten werden von den Spielern geändert ...
+  observeEvent(input$tarifSpiel, {
+    nr <- getZuletztAktiv()
+    groupsDF[nr, 'GrundtarifSpiel'] <<- input$tarifSpiel
+    tarif[1] <<- input$tarifSpiel
+  })
+  
+  observeEvent(input$tarifSolo, {
+    nr <- getZuletztAktiv()
+    groupsDF[nr, 'GrundtarifSolo'] <<- input$tarifSolo
+    tarif[3] <<- input$tarifSpiel    
+  })
   
   # Spielliste einstellen
   observeEvent(input$spielArt1, {
@@ -648,7 +736,11 @@ shinyServer(function(input, output, session) {
                       "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
 
       # Neuanlegen ... 
-      if (is.null(spielverlauf) || nrow(spielverlauf) == 0) {
+      if (is.null(spielverlauf)) {
+        sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
+        df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
+        spielverlauf <<- df
+      } else if (nrow(spielverlauf) == 0) {
         sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
         df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
         spielverlauf <<- df
@@ -686,10 +778,15 @@ shinyServer(function(input, output, session) {
   
   # Spielgruppe wechseln
   observeEvent(input$gruppeWaehlen, {
-    nr <- which(groupsDF$Gruppe == input$gruppeWaehlen)
+    # Daten der Gruppe abspeichern
     saveActiveGroup(testExist = TRUE)
+    
+    # Neue Gruppe setzen
+    nr <- which(groupsDF$Gruppe == input$gruppeWaehlen)
     setZuletztAktiv(nr)
     setActiveGroup()
+    
+    # ... und anzeigen
     displayGroup()
   }, ignoreInit = TRUE)
   
@@ -700,38 +797,18 @@ shinyServer(function(input, output, session) {
     
   }, ignoreInit = TRUE)
   
-#'##########################################################################################################  
-#' Funktion: benenneDoppelteSpielerNeu() - prüft auf doppelt eingegebene oder fehlende Spielernamen und 
-#'                                         ergänzte diese
-#'
-#' @param neueSpieler Vector - enthält die eingegebenen Spielernamen
-#'
-#' @return Vector, ergänzte Spielernamen
-#' @export
-#'
-#' @examples neueSpieler("qw, "qw", "", "er") -> neueSpieler("qw", "qw2", "Spieler3", "er")
-#'##########################################################################################################
-
-  benenneDoppelteSpielerNeu <- function(neueSpieler) {
-    addNum <- seq(1:length(neueSpieler))
-    keinName <- which(neueSpieler == "")
-    neueSpieler[keinName] <- paste0("Spieler", addNum[keinName])
-    neu <- which(duplicated(neueSpieler))
-    neueSpieler[neu] <- paste0(neueSpieler[neu], addNum[neu])
-    print(neueSpieler)
-    return(neueSpieler)
-  }
-  
   # Modaldialog 'Gruppe erstellen'
   observeEvent(input$modalGruppeErstellenOK, {
     # Dateiname für Spielverlauf benennen
     fileSpielverlauf <- paste0(input$grName, "_SK.csv")
-    # Test auf doppelte Spielernamen
+    # Test auf doppelte Spielernamen und fehlendes Startkapital
     neueSpieler <- benenneDoppelteSpielerNeu(c(input$sp1Name, input$sp2Name, input$sp3Name, input$sp4Name))
+    startkapital <- testeStartkapitalAufNull(c(input$sp1Kapital, input$sp2Kapital, input$sp3Kapital, input$sp4Kapital))
     
     # Dataframe herrichten
-    df <- data.frame(input$grName, neueSpieler[1], neueSpieler[2], neueSpieler[3], neueSpieler[4],
-                     input$sp1Kapital, input$sp2Kapital, input$sp3Kapital, input$sp4Kapital,
+    df <- data.frame(input$grName, 
+                     neueSpieler[1], neueSpieler[2], neueSpieler[3], neueSpieler[4],
+                     startkapital[1], startkapital[2], startkapital[3], startkapital[4],
                      Sys.time(), input$tarifSpielErst, input$tarifSoloErst, fileSpielverlauf,
                      "red", "green", "blue", "orange", 1)
     colnames(df) <- c("Gruppe","Spieler1","Spieler2","Spieler3","Spieler4",
@@ -755,19 +832,30 @@ shinyServer(function(input, output, session) {
     
   }, ignoreInit = TRUE)
   
-  # Die ausgewählte Gruppe aus der Liste löschen -------------
-  observeEvent(input$loescheGruppe, {
+  # Die ausgewählte Gruppe aus der Liste löschen: 2. Stufe - 
+  #                                               Löschen einer Gruppe ausführen, wenn der User zustimmt!
+  observeEvent(input$modalWLoesch, {
+    
     # Löschen der Spielverlaufsdaten
     file.remove(groupsDF[getZuletztAktiv(), 'DateiSpielliste'])
     #Spielgruppe löschen
     groupsDF <<- groupsDF[c(-getZuletztAktiv()), ]
+    
     # Erste Gruppe in der Liste als aktiv setzten
     setZuletztAktiv(1)
     # Daten anpassen und anzeigen
     setAndDisplay()
     # Den momentanen Stand der Spielgruppen abspeichern
     saveActiveGroup()
-  })
+    
+    # Modaldialog schließen
+    removeModal()
+  }, ignoreInit = TRUE)
+  
+  # Die ausgewählte Gruppe aus der Liste löschen: 1. Stufe - User fragen, ob die Gruppe gelöscht werden soll
+  observeEvent(input$loescheGruppe, {
+    showModal(gruppeWirklichLoeschen)
+  }, ignoreInit = TRUE)
 
   # --- Modultests ... -------------------------------------------------------------------------------------
   

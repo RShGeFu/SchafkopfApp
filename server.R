@@ -205,6 +205,19 @@ shinyServer(function(input, output, session) {
     return(runden)
   }
   
+#'##########################################################################################################
+#' Funktion: loadGroups() - lädt die unterschiedlichen Spielgruppen entweder aus einer Datei oder
+#'                          einer Datenbank
+#' @param mode numeric - steuert den Modus, mit die Daten geladen werden (0: File, 1: Datenbank)
+#' @param fileSKR character - Dateiname der Datei, die die Spielgruppen enthält
+#'
+#' @return Dataframe mit den Spielgruppen
+#' @export keine
+#'
+#' @examples loadGroups(0, "schafkopfrunden.csv") -> ruft die Funktion für das Laden der Daten über ein 
+#'           File auf
+#'##########################################################################################################
+
   loadGroups <- function(mode = configMode, fileSKR = fileGroups) {
     return(
       switch(as.character(mode),
@@ -687,13 +700,37 @@ shinyServer(function(input, output, session) {
     
   }, ignoreInit = TRUE)
   
+#'##########################################################################################################  
+#' Funktion: benenneDoppelteSpielerNeu() - prüft auf doppelt eingegebene oder fehlende Spielernamen und 
+#'                                         ergänzte diese
+#'
+#' @param neueSpieler Vector - enthält die eingegebenen Spielernamen
+#'
+#' @return Vector, ergänzte Spielernamen
+#' @export
+#'
+#' @examples neueSpieler("qw, "qw", "", "er") -> neueSpieler("qw", "qw2", "Spieler3", "er")
+#'##########################################################################################################
+
+  benenneDoppelteSpielerNeu <- function(neueSpieler) {
+    addNum <- seq(1:length(neueSpieler))
+    keinName <- which(neueSpieler == "")
+    neueSpieler[keinName] <- paste0("Spieler", addNum[keinName])
+    neu <- which(duplicated(neueSpieler))
+    neueSpieler[neu] <- paste0(neueSpieler[neu], addNum[neu])
+    print(neueSpieler)
+    return(neueSpieler)
+  }
+  
   # Modaldialog 'Gruppe erstellen'
   observeEvent(input$modalGruppeErstellenOK, {
     # Dateiname für Spielverlauf benennen
     fileSpielverlauf <- paste0(input$grName, "_SK.csv")
+    # Test auf doppelte Spielernamen
+    neueSpieler <- benenneDoppelteSpielerNeu(c(input$sp1Name, input$sp2Name, input$sp3Name, input$sp4Name))
     
     # Dataframe herrichten
-    df <- data.frame(input$grName, input$sp1Name, input$sp2Name, input$sp3Name, input$sp4Name,
+    df <- data.frame(input$grName, neueSpieler[1], neueSpieler[2], neueSpieler[3], neueSpieler[4],
                      input$sp1Kapital, input$sp2Kapital, input$sp3Kapital, input$sp4Kapital,
                      Sys.time(), input$tarifSpielErst, input$tarifSoloErst, fileSpielverlauf,
                      "red", "green", "blue", "orange", 1)
@@ -720,11 +757,15 @@ shinyServer(function(input, output, session) {
   
   # Die ausgewählte Gruppe aus der Liste löschen -------------
   observeEvent(input$loescheGruppe, {
-    print("Gruppe löschen")
+    # Löschen der Spielverlaufsdaten
     file.remove(groupsDF[getZuletztAktiv(), 'DateiSpielliste'])
+    #Spielgruppe löschen
     groupsDF <<- groupsDF[c(-getZuletztAktiv()), ]
+    # Erste Gruppe in der Liste als aktiv setzten
     setZuletztAktiv(1)
+    # Daten anpassen und anzeigen
     setAndDisplay()
+    # Den momentanen Stand der Spielgruppen abspeichern
     saveActiveGroup()
   })
 

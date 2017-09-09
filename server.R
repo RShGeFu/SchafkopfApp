@@ -67,6 +67,10 @@ shinyServer(function(input, output, session) {
                                         footer = tagList(actionButton("modalWLoesch", "Ja!"),
                                                          modalButton("Nein!")))
   
+  summeGroesserAls120 <- modalDialog(h4("Bereits die Summe von 3 Spielern ergibt mehr als 120!"),
+                                     title = "Bitte Vorsicht!",
+                                     footer = modalButton("Weiter"))
+  
   # --- Manipulationen der Dataframes und Vektoren ---------------------------------------------------------
   
   #'########################################################################################################
@@ -161,7 +165,18 @@ shinyServer(function(input, output, session) {
   loadSpielverlaufbyDB <- function() {
     
   }
-  
+
+  #'##########################################################################################################
+  #' Funktion: loadSpielverlaufByFile() - lädt den Spielverlauf aus einer CSV-Datei, wenn diese vorhanden ist
+  #'
+  #' @param fileSpielVerlauf - character, Filename der CSV-Datei
+  #'
+  #' @return Dataframe mit den Daten des Spielverlaufs
+  #' @export keine
+  #'
+  #' @examples
+  #'##########################################################################################################
+
   loadSpielverlaufByFile <- function(fileSpielVerlauf) {
     spVerlauf <- NULL
     
@@ -172,7 +187,19 @@ shinyServer(function(input, output, session) {
     
     return(spVerlauf)    
   }
-  
+
+  #'##########################################################################################################
+  #' Funktion - loadSpielverlauf() - lädt für eine Gruppe den gesamten Spielverlauf
+  #'
+  #' @param mode - integer, je nach Wert wird entweder auf ein File oder die Datenbank zugegriffen
+  #' @param fileSpielverlauf - character, Filename für die CSV-Datei des Spielverlaufs der jeweiligen Gruppe
+  #'
+  #' @return Dataframe mit den Daten des Spielverlaufs
+  #' @export keine
+  #'
+  #' @examples
+  #'##########################################################################################################
+
   loadSpielverlauf <- function(mode = configMode, fileSpielverlauf) {
     return(
       switch(as.character(mode),
@@ -200,7 +227,19 @@ shinyServer(function(input, output, session) {
    
     return(df)
   }
-  
+
+  #'##########################################################################################################  
+  #' Funktion - loadGroupsByFile() - lädt die Spielgruppen aus einer CSV-Datei, wenn keine Datei exisitiert,
+  #'                                 wird der User gebeten eine Gruppe zu erstellen
+  #'
+  #' @param fileSKR - character, Dateiname der CSV-Datei
+  #'
+  #' @return Dataframe mit den Eigenschaften der Spielgruppen
+  #' @export keine
+  #'
+  #' @examples 
+  #'##########################################################################################################
+
   loadGroupsByFile <- function (fileSKR) {
     runden <- NULL
     
@@ -214,18 +253,18 @@ shinyServer(function(input, output, session) {
     return(runden)
   }
   
-#'##########################################################################################################
-#' Funktion: loadGroups() - lädt die unterschiedlichen Spielgruppen entweder aus einer Datei oder
-#'                          einer Datenbank
-#' @param mode numeric - steuert den Modus, mit die Daten geladen werden (0: File, 1: Datenbank)
-#' @param fileSKR character - Dateiname der Datei, die die Spielgruppen enthält
-#'
-#' @return Dataframe mit den Spielgruppen
-#' @export keine
-#'
-#' @examples loadGroups(0, "schafkopfrunden.csv") -> ruft die Funktion für das Laden der Daten über ein 
-#'           File auf
-#'##########################################################################################################
+  #'##########################################################################################################
+  #' Funktion: loadGroups() - lädt die unterschiedlichen Spielgruppen entweder aus einer Datei oder
+  #'                          einer Datenbank
+  #' @param mode numeric - steuert den Modus, mit die Daten geladen werden (0: File, 1: Datenbank)
+  #' @param fileSKR character - Dateiname der Datei, die die Spielgruppen enthält
+  #'
+  #' @return Dataframe mit den Spielgruppen
+  #' @export keine
+  #'
+  #' @examples loadGroups(0, "schafkopfrunden.csv") -> ruft die Funktion für das Laden der Daten über ein 
+  #'           File auf
+  #'##########################################################################################################
 
   loadGroups <- function(mode = configMode, fileSKR = fileGroups) {
     return(
@@ -255,7 +294,20 @@ shinyServer(function(input, output, session) {
   saveActiveGroupByDB <- function() {
     return(FALSE)
   }
-  
+
+  #'##########################################################################################################
+  #' Funktion: saveActiveGroupByFile() - speichert die Daten der aktuellen Gruppe in eine CSV-Datei
+  #'
+  #' @param fileSKR - character, Filename der CSV-Datei
+  #' @param testExist - logical, TRUE: testet ob die Datei(en) existiert und speichert, 
+  #'                             FALSE: speichert direkt
+  #'
+  #' @return logical - TRUE, wenn alles geklappt hat, FALSE, wenn ein Fehler aufgetreten ist
+  #' @export keine
+  #'
+  #' @examples
+  #'##########################################################################################################
+
   saveActiveGroupByFile <- function(fileSKR, testExist) {
     success <- FALSE
     nr <- getZuletztAktiv()
@@ -274,6 +326,20 @@ shinyServer(function(input, output, session) {
     }
     return(success)
   }
+
+  #'##########################################################################################################
+  #' Funktion: saveActiveGroup() - speichert die Daten der aktuellen Gruppenliste und den Spielverlauf der
+  #'                               aktiven Gruppe ab (File oder Datenbank)
+  #'
+  #' @param mode - integer, speichert entweder in eine CSV-Datei oder in eine Datenbank
+  #' @param fileSKR - character, Filename der CSV-Datei
+  #' @param testExist - logical, speichert entweder direkt oder nach Test auf Existenz der Files
+  #'
+  #' @return logical - TRUE, wenn das Speichern ausgeführt wurde, FALSE, wenn ein Problem aufgetreten ist
+  #' @export keine
+  #'
+  #' @examples
+  #'##########################################################################################################
 
   saveActiveGroup <- function(mode = configMode, fileSKR = fileGroups, testExist = FALSE) {
     return(
@@ -297,15 +363,22 @@ shinyServer(function(input, output, session) {
   #'##########################################################################################################
   
   sumPoints <- function() {
-    punkte <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)     # Aktualisiere die Punkteliste
+    numInp <- c("pkt1", "pkt2", "pkt3", "pkt4")                     # Merke Dir die Felder des Dataframes und 
+    punkte <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)     # aktualisiere die Punkteliste
     pkt <- which(punkte == 0)                                       # Bei welchem Spieler ist noch 0 Pkt 
                                                                     # eingetragen?
     if (length(pkt) < 2) {                                          # Ist nur mehr bei einem Spieler kein 
                                                                     # Ergebnis
-      punkte[pkt] <- 120 - sum(punkte)                              # eingetragen, dann berechne es 
-      numInp <- c("pkt1", "pkt2", "pkt3", "pkt4")                   # suche dir aus allen Spielern das
-                                                                    # richtige Feld
-      updateNumericInput(session, numInp[pkt], value = punkte[pkt]) # heraus und trage das Ergebnis ein
+      deltaPkt <- 120 - sum(punkte)                                 # eingetragen, dann berechne es
+      if (!is.na(deltaPkt)) {
+        if (deltaPkt > -1) {                                           # wenn ein positver Wert herauskommt
+          punkte[pkt] <-  deltaPkt                                     # trage diesen Wert ein                              
+          updateNumericInput(session, numInp[pkt], value = punkte[pkt])# und zeige ihn an
+        } else {                                                       # Ansonsten 
+          showModal(summeGroesserAls120)                               # weise den User darauf hin
+          updateNumericInput(session, numInp[pkt], value = "")         # und setze des Wert zurück
+        }
+      }
     }
   }
 
@@ -449,6 +522,20 @@ shinyServer(function(input, output, session) {
   }
   
   #'##########################################################################################################
+  #' Funktion: is.Ramsch() - gibt an, ob ein 'nachträgliches' Solo 'Ramsch' mit gesondertem Traif
+  #'                         gespielt wurde
+  #'
+  #' @return logical - TRUE für Einstellung Solo/Ramsch
+  #' @export kein
+  #'
+  #' @examples s.o.
+  #'##########################################################################################################
+  
+  is.Ramsch <- function() {
+    return(input$spielArt2 == "9")
+  }
+  
+  #'##########################################################################################################
   #' Funktion: findWinner() - findet heraus, wer gewonnen hat, Spieler oder Nichtspieler 
   #'
   #' @return Vektor, der jeden Spieler den Multiplikator 1 oder -1 zurückgibt, mit der Tarif verrechnet und 
@@ -472,6 +559,8 @@ shinyServer(function(input, output, session) {
       # dann lege die Gewinner und Verlierer mit dem jeweiligen Tariffaktor fest
       if (is.Bettler()) {   # Sondersituation 'Bettler'
         hatGespielt <- hatGespielt * ifelse(pkt[1] > 0, -1, 1)
+      } else if (is.Ramsch()) {
+        hatGespielt <- hatGespielt * -1
       } else {
         hatGespielt <- hatGespielt * ifelse(pkt[1] < 61, -1, 1) 
       }
@@ -494,8 +583,12 @@ shinyServer(function(input, output, session) {
  
   calculateProfit <- function() {
     # Berechne den Tarif für das Spiel
-    gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider() & !is.Bettler()) + 
-          tarif[1] * as.numeric(is.Schwarz() & !is.Bettler()) + tarif[1] * as.numeric(input$anzahlLaufende)
+    if (!is.Ramsch()) {
+      gt <- tarif[as.numeric(input$spielArt1)] + tarif[1] * as.numeric(is.Schneider() & !is.Bettler()) + 
+            tarif[1] * as.numeric(is.Schwarz() & !is.Bettler()) + tarif[1] * as.numeric(input$anzahlLaufende)
+    } else {
+      gt <- tarif[1]
+    }
     
     # Lege fest wer was bekommt oder bezahlen muß
     profit <-  findWinner() * gt * (2 ^ (input$anzahlGelegt + as.integer(input$soloArt)))
@@ -932,13 +1025,16 @@ shinyServer(function(input, output, session) {
   # --- Bei Sessionende ... --------------------------------------------------------------------------------
   
   session$onSessionEnded(function() {
-    
-    if (saveActiveGroup(testExist = TRUE))
-      print("Aktive Gruppe abgespeichert ...")
-    else
-      print("Aktive Gruppe nicht abgespeichert ...")
-    
-    print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
+    sch <- "Aktuellen Spielstand "
+    sch <- paste0(sch, ifelse(saveActiveGroup(testExist = TRUE), "" , "nicht "))
+    sch <- paste0(sch, "gespeichert! (c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
+    #if (saveActiveGroup(testExist = TRUE))
+    #  print("AKtuellen Spielstand espeichert ...")
+    #else
+    #  print("Aktuellen Spielstand nicht gespeichert ...")
+    #
+    #print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
+    print(sch)
     stopApp()
   })
   

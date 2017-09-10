@@ -114,7 +114,8 @@ shinyUI(fluidPage(
   tabsetPanel(id = "tSP",
                 tabPanel("Tabelle", dataTableOutput("gewinnTabelle"), value = "tab"),
                 tabPanel("Grafik", plotOutput("gewinnPlot"), value = "gra"),
-                tabPanel("Statistik", value = "sta")
+                tabPanel("Statistik", value = "sta"),
+                tabPanel("Einstellungen", value = "ein")
   )
   
   ),

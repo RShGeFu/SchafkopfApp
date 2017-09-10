@@ -548,7 +548,8 @@ shinyServer(function(input, output, session) {
 
   findWinner <- function() {
     # update der Spieler/Nichtspieler
-    hatGespielt <- ifelse(c(input$sp1, input$sp2, input$sp3, input$sp4), as.numeric(input$spielArt1), -1)
+    sp <- c(input$sp1, input$sp2, input$sp3, input$sp4)
+    hatGespielt <- ifelse(sp, as.numeric(input$spielArt1), -1)
     
     # rechne die Punkte aus
     pkt <- calculatePunkte()
@@ -720,6 +721,24 @@ shinyServer(function(input, output, session) {
     
   }
   
+  #'#######################################################################################################
+  #' Funktion: updateSpielerBeiRamsch() - setzt die Checkbox beim Spieler mit der höchsten Punktzahl
+  #'
+  #' @return kein
+  #' @export kein
+  #'
+  #' @examples
+  #'#######################################################################################################
+
+  updateSpielerBeiRamsch <- function() {
+    s <- c("sp1", "sp2", "sp3", "sp4")                      # Spieler
+    p <- c(input$pkt1, input$pkt2, input$pkt3, input$pkt4)  # Punkte holen ...
+    pM <- p == max(p)                                       # welcher Spieler hat dich höchste Punktzahl
+    for(i in seq(1:4)) {                                    # Checkbox für Checkbox updaten...
+      updateCheckboxInput(session, s[i], value = pM[i])
+    }
+  }
+  
   # --- Support-Funktionen --------------------------------------------------------------------------------
 
   #'#######################################################################################################  
@@ -809,6 +828,9 @@ shinyServer(function(input, output, session) {
   
   # Daten speichern und Eingabe zurücksetzen
   observeEvent(input$spielAufschreiben, {
+    # Nochmal auf Ramsch testen und sicherstellen, daß der Spieler mit den meisten Punkten gewählt ist
+    updateSpielerBeiRamsch()
+    
     # Gewinn der Spielrunde berechnen
     p <- calculateProfit()
     
@@ -949,6 +971,12 @@ shinyServer(function(input, output, session) {
   observeEvent(input$loescheGruppe, {
     showModal(gruppeWirklichLoeschen)
   }, ignoreInit = TRUE)
+  
+  # Welche Soloart wird ausgewählt? Hier wichtig für das Spiel 'Ramsch' -> Auswahl des Spielers
+  observeEvent(input$spielArt2, {
+    if (is.Ramsch())
+      updateSpielerBeiRamsch()
+  }, ignoreInit = TRUE)
 
   # --- Modultests ... -------------------------------------------------------------------------------------
   
@@ -1028,12 +1056,6 @@ shinyServer(function(input, output, session) {
     sch <- "Aktuellen Spielstand "
     sch <- paste0(sch, ifelse(saveActiveGroup(testExist = TRUE), "" , "nicht "))
     sch <- paste0(sch, "gespeichert! (c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
-    #if (saveActiveGroup(testExist = TRUE))
-    #  print("AKtuellen Spielstand espeichert ...")
-    #else
-    #  print("Aktuellen Spielstand nicht gespeichert ...")
-    #
-    #print("(c) SchafkopfApp by G. Füchsl - Auf Wiedersehen, bis zum nächsten Mal ...")
     print(sch)
     stopApp()
   })

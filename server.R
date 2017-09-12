@@ -15,6 +15,7 @@
 library(shiny)
 library(DBI)
 library(RMySQL)
+library(digest)
 
 # --- Allgemeine Variablen ---------------------------------------------------------------------------------
 
@@ -141,6 +142,7 @@ shinyServer(function(input, output, session) {
   #'
   #' @examples
   #'########################################################################################################
+  
   setTypesOfGroupsDF <- function() {
     groupsDF$Gruppe <<- as.character(groupsDF$Gruppe)
     groupsDF$Spieler1 <<- as.character(groupsDF$Spieler1)
@@ -155,9 +157,38 @@ shinyServer(function(input, output, session) {
     groupsDF$Startkapital2 <<- as.integer(as.character(groupsDF$Startkapital2))
     groupsDF$Startkapital3 <<- as.integer(as.character(groupsDF$Startkapital3))
     groupsDF$Startkapital4 <<- as.integer(as.character(groupsDF$Startkapital4))
+    groupsDF$Beginn <<- as.POSIXct(as.character(groupsDF$Beginn))
     groupsDF$GrundtarifSpiel <<- as.integer(as.character(groupsDF$GrundtarifSpiel))
     groupsDF$GrundtarifSolo <<- as.integer(as.character(groupsDF$GrundtarifSolo))
     groupsDF$DateiSpielliste <<- as.character(groupsDF$DateiSpielliste)    
+  }
+  
+  #'########################################################################################################
+  #' Funktion: setColsGroupsDF() - definiert für das Dataframe groupsDF die Spaltennamen
+  #'
+  #' @param df - Dataframe, groupsDF, könnte auch global aufgerufen werden
+  #'
+  #' @return adaptierter Dataframe df
+  #' @export keine
+  #'
+  #' @examples
+  #'########################################################################################################
+  
+  setColsGroupsDF <- function(df) {
+    colnames(df) <- c("Gruppe","Spieler1","Spieler2","Spieler3","Spieler4",
+                     "Startkapital1","Startkapital2","Startkapital3","Startkapital4",
+                     "Beginn","GrundtarifSpiel","GrundtarifSolo","DateiSpielliste",
+                     "FarbeSp1","FarbeSp2","FarbeSp3","FarbeSp4","zuletztAktiv")
+    return(df)
+  }
+  
+  setColsSpielverlauf <- function(df) {
+    colnames(df) <- c(spieler,
+                      "GewinnSp1", "GewinnSp2", "GewinnSp3", "GewinnSp4",
+                      "Spielart", "Spiel", "Solotarif",
+                      "PunkteSp1", "PunkteSp2", "PunkteSp3", "PunkteSp4",
+                      "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
+    return(df)
   }
   
   # --- Initialisierungsfunktionen -------------------------------------------------------------------------
@@ -181,6 +212,13 @@ shinyServer(function(input, output, session) {
     spVerlauf <- NULL
     
     if (file.exists(fileSpielVerlauf)) {
+      encFile <- gsub(".csv", ".skr", fileSpielVerlauf)
+      if (file.exists((encFile))) {
+        fl <- file.info(encFile)
+        f <- readBin(encFile, "raw", fl$size)
+        r <- decryptSpielverlauf(f)
+        print(r)
+      }
       spVerlauf <- read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
       spVerlauf$Zeit <- as.POSIXct(spVerlauf$Zeit)
     }
@@ -243,9 +281,16 @@ shinyServer(function(input, output, session) {
   loadGroupsByFile <- function (fileSKR) {
     runden <- NULL
     
-    if (file.exists(fileSKR))
+    if (file.exists(fileSKR)) {
+      encFile <- gsub(".csv", ".skr", fileSKR)
+      if (file.exists(encFile)) {
+        fl <- file.info(encFile)
+        f <- readBin(encFile, "raw", fl$size)
+        r <- decryptGroupsDF(f)
+        print(r)
+      }
       runden <- read.csv(fileSKR, sep = ";", header = TRUE)
-    else {
+    } else {
       showModal(gruppeErstellen)
       runden <- groupsDF
     }
@@ -289,6 +334,66 @@ shinyServer(function(input, output, session) {
     setAndDisplay()
   }
 
+  # --- Verschlüsselung ------------------------------------------------------------------------------------
+  
+  encryptData <- function(toEncDF) {
+    
+    # Variablendefinition
+    toEnc <- "µ"
+    encrypted <- NULL
+    
+    # String aus Dataframe zusammenstellen
+    for(i in seq_along(1:length(toEncDF))) {
+      toEnc <- c(toEnc, as.character(toEncDF[[i]]), "µ")
+    }    
+
+    # Verschlüsselung definieren
+    key <- as.raw(c(0x4, 0x2, 0x5, 0x6, 0xA, 0xC, 0x1, 0x7, 0xE, 0x9, 0xF, 0x2, 0x1, 0x7, 0x3, 0xB))
+    aes <- AES(key, mode = "ECB")
+    
+    # String zur Verschlüsselung zusammenstellen
+    for(i in toEnc) {
+      i <- paste0("~", i)
+      to16 <- 16 - nchar(i, type = "bytes") %% 16 # auf 16 auffüllen
+      for(j in 1:to16)
+        i <- paste0(i, '°')                       # Füllzeichen verwenden
+      encrypted <- c(encrypted, aes$encrypt(i))
+    }
+    
+    return(encrypted)
+
+  }
+  
+  decryptData <- function(toDec) {
+    d <- NULL
+    key <- as.raw(c(0x4, 0x2, 0x5, 0x6, 0xA, 0xC, 0x1, 0x7, 0xE, 0x9, 0xF, 0x2, 0x1, 0x7, 0x3, 0xB))
+    aes <- AES(key, mode = "ECB")
+    retDF <- NULL
+    
+    dec <- strsplit(aes$decrypt(toDec), "[~]")
+    d <- gsub("°", "", c(d, dec[[1]][which(dec[[1]] != "")]))
+    decL <- list()
+    l <- which(d == 'µ')
+    for(i in seq_along(1:(length(l)-1))) {
+      decL[[i]] <- c(d[(l[i]+1):(l[i+1]-1)])
+      retDF <- cbind(retDF, decL[[i]])
+    }
+
+    return(as.data.frame(retDF))
+  }
+  
+  decryptGroupsDF <- function(toDec) {
+    df <- decryptData(toDec)
+    df <- setColsGroupsDF(df)
+    return(df)
+  }
+  
+  decryptSpielverlauf <- function(toDec) {
+    df <- decryptData(toDec)
+    df <- setColsSpielverlauf(df)
+    return(df)
+  }
+  
   # --- Dauerhafte Speicherung -----------------------------------------------------------------------------
   
   saveActiveGroupByDB <- function() {
@@ -310,18 +415,40 @@ shinyServer(function(input, output, session) {
 
   saveActiveGroupByFile <- function(fileSKR, testExist) {
     success <- FALSE
+    encCol <- "µ"
+    
     nr <- getZuletztAktiv()
+    
     if (testExist) {
       if (!is.null(groupsDF[nr, 'DateiSpielliste'])) {
         if (file.exists(groupsDF[nr, 'DateiSpielliste'])) {
+          encFile <- gsub(".csv", ".skr", fileSKR)
+          e <- encryptData(groupsDF)
+          writeBin(e, encFile)
+          
           write.csv2(groupsDF, fileSKR, row.names = FALSE)
+          
+          encFile <- gsub(".csv", ".skr", groupsDF[nr, 'DateiSpielliste'])
+          e <- encryptData(spielverlauf)
+          writeBin(e, encFile)
+          
           write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)    
           success <- TRUE
         }
       }
     } else {
+      encFile <- gsub(".csv", ".skr", fileSKR)
+      e <- encryptData(groupsDF)
+      writeBin(e, encFile)
+      
       write.csv2(groupsDF, fileSKR, row.names = FALSE)
+      
+      encFile <- gsub(".csv", ".skr", groupsDF[nr, 'DateiSpielliste'])
+      e <- encryptData(spielverlauf)
+      writeBin(e, encFile)
+      
       write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)    
+      
       success <- TRUE      
     }
     return(success)
@@ -844,11 +971,7 @@ shinyServer(function(input, output, session) {
                      input$pkt1, input$pkt2, input$pkt3, input$pkt4,
                      input$anzahlGelegt, input$anzahlLaufende,
                      as.numeric(is.Schneider()), as.numeric(is.Schwarz()), Sys.time())
-      colnames(df) <- c(spieler,
-                      "GewinnSp1", "GewinnSp2", "GewinnSp3", "GewinnSp4",
-                      "Spielart", "Spiel", "Solotarif",
-                      "PunkteSp1", "PunkteSp2", "PunkteSp3", "PunkteSp4",
-                      "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
+
 
       # Neuanlegen ... 
       if (is.null(spielverlauf)) {
@@ -876,7 +999,7 @@ shinyServer(function(input, output, session) {
       session$sendCustomMessage("saveTable", "Stimmt nicht!")
     }
 
-  })
+  }, ignoreInit = TRUE)
   
   # Letzten Eintrag zurücksetzen
   observeEvent(input$letztesKorrigieren, {
@@ -889,7 +1012,7 @@ shinyServer(function(input, output, session) {
     # Speichern des aktuellen Ergebnisses
     saveActiveGroup()
     reset()
-  })
+  }, ignoreInit = TRUE)
   
   # Spielgruppe wechseln
   observeEvent(input$gruppeWaehlen, {
@@ -926,10 +1049,7 @@ shinyServer(function(input, output, session) {
                      startkapital[1], startkapital[2], startkapital[3], startkapital[4],
                      Sys.time(), input$tarifSpielErst, input$tarifSoloErst, fileSpielverlauf,
                      "red", "green", "blue", "orange", 1)
-    colnames(df) <- c("Gruppe","Spieler1","Spieler2","Spieler3","Spieler4",
-                      "Startkapital1","Startkapital2","Startkapital3","Startkapital4",
-                      "Beginn","GrundtarifSpiel","GrundtarifSolo","DateiSpielliste",
-                      "FarbeSp1","FarbeSp2","FarbeSp3","FarbeSp4","zuletztAktiv")
+    df <- setColsGroupsDF(df)
     
     # Dataframe entweder allgemein definieren oder an bereits existenten anhängen
     if (is.null(groupsDF)) {

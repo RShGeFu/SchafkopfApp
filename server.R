@@ -24,10 +24,10 @@ spiele <- list(c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4),
                c("Eichel" = 1, "Gras" = 2, "Herz" = 3, "Schelln" = 4, "Wenz" = 5, "Farbwenz" = 6, 
                  "Geier" = 7, "Bettler" = 8, "Ramsch" = 9))
 
-fileGroups <- "schafkopfrunden0.csv"    # Name für die Steuerungsdatei der Spielrunden
-localMode <- "0"                        # Speichermodus: 0 - die Daten werden in Dateien abgelegt
-dbMode <- "1"                           #                1 - Die Daten werden in einer Datenbank abgelegt
-configMode <- localMode                 # Konfiguriert für lokale Speicherung
+fileGroups <- "schafkopfrunden.skr"    # Name für die Steuerungsdatei der Spielrunden
+localMode <- "0"                       # Speichermodus: 0 - die Daten werden in Dateien abgelegt
+dbMode <- "1"                          #                1 - Die Daten werden in einer Datenbank abgelegt
+configMode <- localMode                # Konfiguriert für lokale Speicherung
 
 # --- Aufbau der Reactivity --------------------------------------------------------------------------------
 shinyServer(function(input, output, session) {
@@ -157,10 +157,42 @@ shinyServer(function(input, output, session) {
     groupsDF$Startkapital2 <<- as.integer(as.character(groupsDF$Startkapital2))
     groupsDF$Startkapital3 <<- as.integer(as.character(groupsDF$Startkapital3))
     groupsDF$Startkapital4 <<- as.integer(as.character(groupsDF$Startkapital4))
-    groupsDF$Beginn <<- as.POSIXct(as.character(groupsDF$Beginn))
+    #groupsDF$Beginn <<- as.POSIXct(as.character(groupsDF$Beginn))
     groupsDF$GrundtarifSpiel <<- as.integer(as.character(groupsDF$GrundtarifSpiel))
     groupsDF$GrundtarifSolo <<- as.integer(as.character(groupsDF$GrundtarifSolo))
     groupsDF$DateiSpielliste <<- as.character(groupsDF$DateiSpielliste)    
+  }
+  
+  #'########################################################################################################
+  #' Funktion: setTypesOfSpielverlauf() - ordnet den Spalten im Dataframe spielverlauf bestimmte Typen zu
+  #'
+  #' @return keine
+  #' @export keine
+  #'
+  #' @examples 
+  #'########################################################################################################
+  
+  setTypesOfSpielverlauf <- function() {
+    spielverlauf[,1] <<- as.integer(spielverlauf[,1])
+    spielverlauf[,2] <<- as.integer(spielverlauf[,2])
+    spielverlauf[,3] <<- as.integer(spielverlauf[,3])
+    spielverlauf[,4] <<- as.integer(spielverlauf[,4])
+    spielverlauf$GewinnSp1 <<- as.integer(spielverlauf$GewinnSp1)
+    spielverlauf$GewinnSp2 <<- as.integer(spielverlauf$GewinnSp2)
+    spielverlauf$GewinnSp3 <<- as.integer(spielverlauf$GewinnSp3)
+    spielverlauf$GewinnSp4 <<- as.integer(spielverlauf$GewinnSp4)
+    spielverlauf$Spielart <<- as.integer(spielverlauf$Spielart)
+    spielverlauf$Spiel <<- as.integer(spielverlauf$Spiel)
+    spielverlauf$Solotarif <<- as.integer(spielverlauf$Solotarif)
+    spielverlauf$PunkteSp1 <<- as.integer(spielverlauf$PunkteSp1)
+    spielverlauf$PunkteSp2 <<- as.integer(spielverlauf$PunkteSp2)
+    spielverlauf$PunkteSp3 <<- as.integer(spielverlauf$PunkteSp3)
+    spielverlauf$PunkteSp4 <<- as.integer(spielverlauf$PunkteSp4)
+    spielverlauf$Gelegt <<- as.integer(spielverlauf$Gelegt)
+    spielverlauf$Laufende <<- as.integer(spielverlauf$Laufende)
+    spielverlauf$Schneider <<- as.integer(spielverlauf$Schneider)
+    spielverlauf$Schwarz <<- as.integer(spielverlauf$Schwarz)
+    spielverlauf$Zeit <<- as.POSIXct(as.character(spielverlauf$Zeit))
   }
   
   #'########################################################################################################
@@ -181,6 +213,17 @@ shinyServer(function(input, output, session) {
                      "FarbeSp1","FarbeSp2","FarbeSp3","FarbeSp4","zuletztAktiv")
     return(df)
   }
+
+  #'########################################################################################################
+  #' Funktion: setColsSpielverlauf() - definiert für das Dataframe spielverlauf die Spaltennamen
+  #'
+  #' @param df - Dataframe, spielverlauf, könnte auch global aufgerufen werden
+  #'
+  #' @return adaptierter Dataframe df
+  #' @export keine
+  #'
+  #' @examples
+  #'########################################################################################################
   
   setColsSpielverlauf <- function(df) {
     colnames(df) <- c(spieler,
@@ -217,10 +260,8 @@ shinyServer(function(input, output, session) {
         fl <- file.info(encFile)
         f <- readBin(encFile, "raw", fl$size)
         r <- decryptSpielverlauf(f)
-        print(r)
       }
-      spVerlauf <- read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
-      spVerlauf$Zeit <- as.POSIXct(spVerlauf$Zeit)
+      spVerlauf <- r #read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
     }
     
     return(spVerlauf)    
@@ -280,7 +321,7 @@ shinyServer(function(input, output, session) {
 
   loadGroupsByFile <- function (fileSKR) {
     runden <- NULL
-    
+    print(fileSKR)
     if (file.exists(fileSKR)) {
       encFile <- gsub(".csv", ".skr", fileSKR)
       if (file.exists(encFile)) {
@@ -289,7 +330,7 @@ shinyServer(function(input, output, session) {
         r <- decryptGroupsDF(f)
         print(r)
       }
-      runden <- read.csv(fileSKR, sep = ";", header = TRUE)
+      runden <- r #read.csv(fileSKR, sep = ";", header = TRUE)
     } else {
       showModal(gruppeErstellen)
       runden <- groupsDF
@@ -401,6 +442,36 @@ shinyServer(function(input, output, session) {
   }
 
   #'##########################################################################################################
+  #' Funktion: writeFiles() - schreibt die Daten der Dataframes verschlüsselt oder unverschlüsselt in
+  #'                          die angegebene Datei
+  #'
+  #' @param fileSKR - character, Dateiname, in die groupsDF geschrieben werden soll
+  #' @param encrypted - TRUE, Daten werden verschlüsst, FALSE, Daten werden nicht verschlüsselt
+  #'
+  #' @return kein
+  #' @export kein
+  #'
+  #' @examples
+  #'##########################################################################################################
+  
+  writeFiles <- function(fileSKR, encrypted = TRUE) {
+    nr <- getZuletztAktiv()
+    if (encrypted) {
+      print(groupsDF)
+      encFile <- gsub(".csv", ".skr", fileSKR)
+      e <- encryptData(groupsDF)
+      print(groupsDF[nr, 'DateiSpielliste'])
+      writeBin(e, encFile)
+      encFile <- gsub(".csv", ".skr", groupsDF[nr, 'DateiSpielliste'])
+      e <- encryptData(spielverlauf)
+      writeBin(e, encFile)
+    } else {
+      write.csv2(groupsDF, fileSKR, row.names = FALSE)
+      write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)       
+    }
+  }
+  
+  #'##########################################################################################################
   #' Funktion: saveActiveGroupByFile() - speichert die Daten der aktuellen Gruppe in eine CSV-Datei
   #'
   #' @param fileSKR - character, Filename der CSV-Datei
@@ -415,40 +486,18 @@ shinyServer(function(input, output, session) {
 
   saveActiveGroupByFile <- function(fileSKR, testExist) {
     success <- FALSE
-    encCol <- "µ"
     
     nr <- getZuletztAktiv()
     
     if (testExist) {
       if (!is.null(groupsDF[nr, 'DateiSpielliste'])) {
         if (file.exists(groupsDF[nr, 'DateiSpielliste'])) {
-          encFile <- gsub(".csv", ".skr", fileSKR)
-          e <- encryptData(groupsDF)
-          writeBin(e, encFile)
-          
-          write.csv2(groupsDF, fileSKR, row.names = FALSE)
-          
-          encFile <- gsub(".csv", ".skr", groupsDF[nr, 'DateiSpielliste'])
-          e <- encryptData(spielverlauf)
-          writeBin(e, encFile)
-          
-          write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)    
+          writeFiles(fileSKR)
           success <- TRUE
         }
       }
     } else {
-      encFile <- gsub(".csv", ".skr", fileSKR)
-      e <- encryptData(groupsDF)
-      writeBin(e, encFile)
-      
-      write.csv2(groupsDF, fileSKR, row.names = FALSE)
-      
-      encFile <- gsub(".csv", ".skr", groupsDF[nr, 'DateiSpielliste'])
-      e <- encryptData(spielverlauf)
-      writeBin(e, encFile)
-      
-      write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)    
-      
+      writeFiles(fileSKR)
       success <- TRUE      
     }
     return(success)
@@ -965,25 +1014,29 @@ shinyServer(function(input, output, session) {
     if (length(which(p == 0)) != 4) {
     
       # Daten zusammenfassen
-      df <- data.frame(p[1], p[2], p[3], p[4],
-                     p[1], p[2], p[3], p[4],
-                     input$spielArt1, input$spielArt2, input$soloArt,
-                     input$pkt1, input$pkt2, input$pkt3, input$pkt4,
-                     input$anzahlGelegt, input$anzahlLaufende,
+      df <- data.frame(as.integer(p[1]), as.integer(p[2]), as.integer(p[3]), as.integer(p[4]),
+                     as.integer(p[1]), as.integer(p[2]), as.integer(p[3]), as.integer(p[4]),
+                     as.integer(input$spielArt1), as.integer(input$spielArt2), as.integer(input$soloArt),
+                     as.integer(input$pkt1), as.integer(input$pkt2), as.integer(input$pkt3), as.integer(input$pkt4),
+                     as.integer(input$anzahlGelegt), as.integer(input$anzahlLaufende),
                      as.numeric(is.Schneider()), as.numeric(is.Schwarz()), Sys.time())
-
+      df <- setColsSpielverlauf(df)
+      
 
       # Neuanlegen ... 
       if (is.null(spielverlauf)) {
+        setTypesOfSpielverlauf()
         sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
         df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
         spielverlauf <<- df
       } else if (nrow(spielverlauf) == 0) {
+        setTypesOfSpielverlauf()
         sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
         df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
         spielverlauf <<- df
       # ...oder Hinzufügen
       } else {
+        setTypesOfSpielverlauf()
         df[spieler] <- df[spieler] + spielverlauf[nrow(spielverlauf), spieler]
         spielverlauf <<- rbind(spielverlauf, df)
       }
@@ -1038,7 +1091,7 @@ shinyServer(function(input, output, session) {
   # Modaldialog 'Gruppe erstellen'
   observeEvent(input$modalGruppeErstellenOK, {
     # Dateiname für Spielverlauf benennen
-    fileSpielverlauf <- paste0(input$grName, "_SK.csv")
+    fileSpielverlauf <- paste0(input$grName, "_SK.skr")
     # Test auf doppelte Spielernamen und fehlendes Startkapital
     neueSpieler <- benenneDoppelteSpielerNeu(c(input$sp1Name, input$sp2Name, input$sp3Name, input$sp4Name))
     startkapital <- testeStartkapitalAufNull(c(input$sp1Kapital, input$sp2Kapital, input$sp3Kapital, input$sp4Kapital))

@@ -131,7 +131,8 @@ shinyServer(function(input, output, session) {
                 gruppe[1, 'GrundtarifSolo'])
     
     spielverlauf <<- loadSpielverlauf(fileSpielverlauf = gruppe[1, 'DateiSpielliste'])
-    
+    setTypesOfSpielverlauf()
+
   }
   
   #'########################################################################################################
@@ -173,25 +174,25 @@ shinyServer(function(input, output, session) {
   #'########################################################################################################
   
   setTypesOfSpielverlauf <- function() {
-    spielverlauf[,1] <<- as.integer(spielverlauf[,1])
-    spielverlauf[,2] <<- as.integer(spielverlauf[,2])
-    spielverlauf[,3] <<- as.integer(spielverlauf[,3])
-    spielverlauf[,4] <<- as.integer(spielverlauf[,4])
-    spielverlauf$GewinnSp1 <<- as.integer(spielverlauf$GewinnSp1)
-    spielverlauf$GewinnSp2 <<- as.integer(spielverlauf$GewinnSp2)
-    spielverlauf$GewinnSp3 <<- as.integer(spielverlauf$GewinnSp3)
-    spielverlauf$GewinnSp4 <<- as.integer(spielverlauf$GewinnSp4)
-    spielverlauf$Spielart <<- as.integer(spielverlauf$Spielart)
-    spielverlauf$Spiel <<- as.integer(spielverlauf$Spiel)
-    spielverlauf$Solotarif <<- as.integer(spielverlauf$Solotarif)
-    spielverlauf$PunkteSp1 <<- as.integer(spielverlauf$PunkteSp1)
-    spielverlauf$PunkteSp2 <<- as.integer(spielverlauf$PunkteSp2)
-    spielverlauf$PunkteSp3 <<- as.integer(spielverlauf$PunkteSp3)
-    spielverlauf$PunkteSp4 <<- as.integer(spielverlauf$PunkteSp4)
-    spielverlauf$Gelegt <<- as.integer(spielverlauf$Gelegt)
-    spielverlauf$Laufende <<- as.integer(spielverlauf$Laufende)
-    spielverlauf$Schneider <<- as.integer(spielverlauf$Schneider)
-    spielverlauf$Schwarz <<- as.integer(spielverlauf$Schwarz)
+    spielverlauf[,1] <<- as.integer(as.character(spielverlauf[,1]))
+    spielverlauf[,2] <<- as.integer(as.character(spielverlauf[,2]))
+    spielverlauf[,3] <<- as.integer(as.character(spielverlauf[,3]))
+    spielverlauf[,4] <<- as.integer(as.character(spielverlauf[,4]))
+    spielverlauf$GewinnSp1 <<- as.integer(as.character(spielverlauf$GewinnSp1))
+    spielverlauf$GewinnSp2 <<- as.integer(as.character(spielverlauf$GewinnSp2))
+    spielverlauf$GewinnSp3 <<- as.integer(as.character(spielverlauf$GewinnSp3))
+    spielverlauf$GewinnSp4 <<- as.integer(as.character(spielverlauf$GewinnSp4))
+    spielverlauf$Spielart <<- as.integer(as.character(spielverlauf$Spielart))
+    spielverlauf$Spiel <<- as.integer(as.character(spielverlauf$Spiel))
+    spielverlauf$Solotarif <<- as.integer(as.character(spielverlauf$Solotarif))
+    spielverlauf$PunkteSp1 <<- as.integer(as.character(spielverlauf$PunkteSp1))
+    spielverlauf$PunkteSp2 <<- as.integer(as.character(spielverlauf$PunkteSp2))
+    spielverlauf$PunkteSp3 <<- as.integer(as.character(spielverlauf$PunkteSp3))
+    spielverlauf$PunkteSp4 <<- as.integer(as.character(spielverlauf$PunkteSp4))
+    spielverlauf$Gelegt <<- as.integer(as.character(spielverlauf$Gelegt))
+    spielverlauf$Laufende <<- as.integer(as.character(spielverlauf$Laufende))
+    spielverlauf$Schneider <<- as.integer(as.character(spielverlauf$Schneider))
+    spielverlauf$Schwarz <<- as.integer(as.character(spielverlauf$Schwarz))
     spielverlauf$Zeit <<- as.POSIXct(as.character(spielverlauf$Zeit))
   }
   
@@ -260,10 +261,9 @@ shinyServer(function(input, output, session) {
         fl <- file.info(encFile)
         f <- readBin(encFile, "raw", fl$size)
         r <- decryptSpielverlauf(f)
+        spVerlauf <- r #read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
       }
-      spVerlauf <- r #read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
     }
-    
     return(spVerlauf)    
   }
 
@@ -321,21 +321,18 @@ shinyServer(function(input, output, session) {
 
   loadGroupsByFile <- function (fileSKR) {
     runden <- NULL
-    print(fileSKR)
     if (file.exists(fileSKR)) {
       encFile <- gsub(".csv", ".skr", fileSKR)
       if (file.exists(encFile)) {
         fl <- file.info(encFile)
         f <- readBin(encFile, "raw", fl$size)
         r <- decryptGroupsDF(f)
-        print(r)
       }
       runden <- r #read.csv(fileSKR, sep = ";", header = TRUE)
     } else {
       showModal(gruppeErstellen)
       runden <- groupsDF
     }
-    
     return(runden)
   }
   
@@ -386,7 +383,7 @@ shinyServer(function(input, output, session) {
     # String aus Dataframe zusammenstellen
     for(i in seq_along(1:length(toEncDF))) {
       toEnc <- c(toEnc, as.character(toEncDF[[i]]), "µ")
-    }    
+    }
 
     # Verschlüsselung definieren
     key <- as.raw(c(0x4, 0x2, 0x5, 0x6, 0xA, 0xC, 0x1, 0x7, 0xE, 0x9, 0xF, 0x2, 0x1, 0x7, 0x3, 0xB))
@@ -419,19 +416,17 @@ shinyServer(function(input, output, session) {
       decL[[i]] <- c(d[(l[i]+1):(l[i+1]-1)])
       retDF <- cbind(retDF, decL[[i]])
     }
-
+  
     return(as.data.frame(retDF))
   }
   
   decryptGroupsDF <- function(toDec) {
-    df <- decryptData(toDec)
-    df <- setColsGroupsDF(df)
+    df <- setColsGroupsDF(decryptData(toDec))
     return(df)
   }
   
   decryptSpielverlauf <- function(toDec) {
-    df <- decryptData(toDec)
-    df <- setColsSpielverlauf(df)
+    df <- setColsSpielverlauf(decryptData(toDec))
     return(df)
   }
   
@@ -457,17 +452,17 @@ shinyServer(function(input, output, session) {
   writeFiles <- function(fileSKR, encrypted = TRUE) {
     nr <- getZuletztAktiv()
     if (encrypted) {
-      print(groupsDF)
       encFile <- gsub(".csv", ".skr", fileSKR)
       e <- encryptData(groupsDF)
-      print(groupsDF[nr, 'DateiSpielliste'])
-      writeBin(e, encFile)
+      writeBin(e, fileSKR)
       encFile <- gsub(".csv", ".skr", groupsDF[nr, 'DateiSpielliste'])
       e <- encryptData(spielverlauf)
-      writeBin(e, encFile)
+      writeBin(e, groupsDF[nr, 'DateiSpielliste'])
     } else {
-      write.csv2(groupsDF, fileSKR, row.names = FALSE)
-      write.csv2(spielverlauf, groupsDF[nr, 'DateiSpielliste'], row.names = FALSE)       
+      encFile <- gsub(".skr", ".csv", fileSKR)
+      write.csv2(groupsDF, encFile, row.names = FALSE)
+      encFile <- gsub(".skr", ".csv", groupsDF[nr, 'DateiSpielliste'])
+      write.csv2(spielverlauf, encFile, row.names = FALSE)       
     }
   }
   
@@ -976,7 +971,7 @@ shinyServer(function(input, output, session) {
   observeEvent(input$tarifSolo, {
     nr <- getZuletztAktiv()
     groupsDF[nr, 'GrundtarifSolo'] <<- input$tarifSolo
-    tarif[3] <<- input$tarifSpiel    
+    tarif[3] <<- input$tarifSolo   
   })
   
   # Spielliste einstellen
@@ -1022,21 +1017,17 @@ shinyServer(function(input, output, session) {
                      as.numeric(is.Schneider()), as.numeric(is.Schwarz()), Sys.time())
       df <- setColsSpielverlauf(df)
       
-
       # Neuanlegen ... 
       if (is.null(spielverlauf)) {
-        setTypesOfSpielverlauf()
         sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
         df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
         spielverlauf <<- df
       } else if (nrow(spielverlauf) == 0) {
-        setTypesOfSpielverlauf()
         sk <- c('Startkapital1', 'Startkapital2','Startkapital3', 'Startkapital4')
         df[spieler] <- df[spieler] + groupsDF[getZuletztAktiv(), sk]
         spielverlauf <<- df
       # ...oder Hinzufügen
       } else {
-        setTypesOfSpielverlauf()
         df[spieler] <- df[spieler] + spielverlauf[nrow(spielverlauf), spieler]
         spielverlauf <<- rbind(spielverlauf, df)
       }

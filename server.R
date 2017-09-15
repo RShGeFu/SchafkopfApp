@@ -126,9 +126,14 @@ shinyServer(function(input, output, session) {
     spielerFarbe <<- c(gruppe[1, 'FarbeSp1'], gruppe[1, 'FarbeSp2'], 
                        gruppe[1, 'FarbeSp3'], gruppe[1, 'FarbeSp4'])
     
-    tarif <<- c(gruppe[1, 'GrundtarifSpiel'], 
+    if (!is.null(gruppe))
+      tarif <<- c(gruppe[1, 'GrundtarifSpiel'], 
                 0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
                 gruppe[1, 'GrundtarifSolo'])
+    else
+      tarif <<- c(5, 
+                0,  # Dummy, da der Index 2 nicht besetzt ist - Berechnungsgründe für den Gesamtgewinn
+                15)
     
     spielverlauf <<- loadSpielverlauf(fileSpielverlauf = gruppe[1, 'DateiSpielliste'])
     setTypesOfSpielverlauf()
@@ -174,26 +179,30 @@ shinyServer(function(input, output, session) {
   #'########################################################################################################
   
   setTypesOfSpielverlauf <- function() {
-    spielverlauf[,1] <<- as.integer(as.character(spielverlauf[,1]))
-    spielverlauf[,2] <<- as.integer(as.character(spielverlauf[,2]))
-    spielverlauf[,3] <<- as.integer(as.character(spielverlauf[,3]))
-    spielverlauf[,4] <<- as.integer(as.character(spielverlauf[,4]))
-    spielverlauf$GewinnSp1 <<- as.integer(as.character(spielverlauf$GewinnSp1))
-    spielverlauf$GewinnSp2 <<- as.integer(as.character(spielverlauf$GewinnSp2))
-    spielverlauf$GewinnSp3 <<- as.integer(as.character(spielverlauf$GewinnSp3))
-    spielverlauf$GewinnSp4 <<- as.integer(as.character(spielverlauf$GewinnSp4))
-    spielverlauf$Spielart <<- as.integer(as.character(spielverlauf$Spielart))
-    spielverlauf$Spiel <<- as.integer(as.character(spielverlauf$Spiel))
-    spielverlauf$Solotarif <<- as.integer(as.character(spielverlauf$Solotarif))
-    spielverlauf$PunkteSp1 <<- as.integer(as.character(spielverlauf$PunkteSp1))
-    spielverlauf$PunkteSp2 <<- as.integer(as.character(spielverlauf$PunkteSp2))
-    spielverlauf$PunkteSp3 <<- as.integer(as.character(spielverlauf$PunkteSp3))
-    spielverlauf$PunkteSp4 <<- as.integer(as.character(spielverlauf$PunkteSp4))
-    spielverlauf$Gelegt <<- as.integer(as.character(spielverlauf$Gelegt))
-    spielverlauf$Laufende <<- as.integer(as.character(spielverlauf$Laufende))
-    spielverlauf$Schneider <<- as.integer(as.character(spielverlauf$Schneider))
-    spielverlauf$Schwarz <<- as.integer(as.character(spielverlauf$Schwarz))
-    spielverlauf$Zeit <<- as.POSIXct(as.character(spielverlauf$Zeit))
+    if (!is.null(spielverlauf)) {
+      spielverlauf[,1] <<- as.integer(as.character(spielverlauf[,1]))
+      spielverlauf[,2] <<- as.integer(as.character(spielverlauf[,2]))
+      spielverlauf[,3] <<- as.integer(as.character(spielverlauf[,3]))
+      spielverlauf[,4] <<- as.integer(as.character(spielverlauf[,4]))
+      spielverlauf$GewinnSp1 <<- as.integer(as.character(spielverlauf$GewinnSp1))
+      spielverlauf$GewinnSp2 <<- as.integer(as.character(spielverlauf$GewinnSp2))
+      spielverlauf$GewinnSp3 <<- as.integer(as.character(spielverlauf$GewinnSp3))
+      spielverlauf$GewinnSp4 <<- as.integer(as.character(spielverlauf$GewinnSp4))
+      spielverlauf$Spielart <<- as.integer(as.character(spielverlauf$Spielart))
+      spielverlauf$Spiel <<- as.integer(as.character(spielverlauf$Spiel))
+      spielverlauf$Solotarif <<- as.integer(as.character(spielverlauf$Solotarif))
+      spielverlauf$PunkteSp1 <<- as.integer(as.character(spielverlauf$PunkteSp1))
+      spielverlauf$PunkteSp2 <<- as.integer(as.character(spielverlauf$PunkteSp2))
+      spielverlauf$PunkteSp3 <<- as.integer(as.character(spielverlauf$PunkteSp3))
+      spielverlauf$PunkteSp4 <<- as.integer(as.character(spielverlauf$PunkteSp4))
+      spielverlauf$Gelegt <<- as.integer(as.character(spielverlauf$Gelegt))
+      spielverlauf$Laufende <<- as.integer(as.character(spielverlauf$Laufende))
+      spielverlauf$Schneider <<- as.integer(as.character(spielverlauf$Schneider))
+      spielverlauf$Schwarz <<- as.integer(as.character(spielverlauf$Schwarz))
+      spielverlauf$Zeit <<- as.POSIXct(as.character(spielverlauf$Zeit))
+    } else {
+      spielverlauf <- NULL 
+    }
   }
   
   #'########################################################################################################
@@ -208,10 +217,14 @@ shinyServer(function(input, output, session) {
   #'########################################################################################################
   
   setColsGroupsDF <- function(df) {
-    colnames(df) <- c("Gruppe","Spieler1","Spieler2","Spieler3","Spieler4",
+    if (ncol(df) == 18) {
+      colnames(df) <- c("Gruppe","Spieler1","Spieler2","Spieler3","Spieler4",
                      "Startkapital1","Startkapital2","Startkapital3","Startkapital4",
                      "Beginn","GrundtarifSpiel","GrundtarifSolo","DateiSpielliste",
                      "FarbeSp1","FarbeSp2","FarbeSp3","FarbeSp4","zuletztAktiv")
+    } else {
+      df <- NULL
+    }
     return(df)
   }
 
@@ -227,11 +240,15 @@ shinyServer(function(input, output, session) {
   #'########################################################################################################
   
   setColsSpielverlauf <- function(df) {
-    colnames(df) <- c(spieler,
+    if (ncol(df) == 20) {
+      colnames(df) <- c(spieler,
                       "GewinnSp1", "GewinnSp2", "GewinnSp3", "GewinnSp4",
                       "Spielart", "Spiel", "Solotarif",
                       "PunkteSp1", "PunkteSp2", "PunkteSp3", "PunkteSp4",
                       "Gelegt", "Laufende", "Schneider", "Schwarz", "Zeit")
+    } else {
+      df <- NULL
+    }
     return(df)
   }
   
@@ -254,14 +271,12 @@ shinyServer(function(input, output, session) {
 
   loadSpielverlaufByFile <- function(fileSpielVerlauf) {
     spVerlauf <- NULL
-    
-    if (file.exists(fileSpielVerlauf)) {
+    if (!is.null(fileSpielVerlauf) && file.exists(fileSpielVerlauf)) {
       encFile <- gsub(".csv", ".skr", fileSpielVerlauf)
       if (file.exists((encFile))) {
         fl <- file.info(encFile)
-        f <- readBin(encFile, "raw", fl$size)
-        r <- decryptSpielverlauf(f)
-        spVerlauf <- r #read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
+        spVerlauf <- decryptSpielverlauf(readBin(encFile, "raw", fl$size))
+              #read.csv(fileSpielVerlauf, sep = ";", header = TRUE)
       }
     }
     return(spVerlauf)    
@@ -327,8 +342,8 @@ shinyServer(function(input, output, session) {
         fl <- file.info(encFile)
         f <- readBin(encFile, "raw", fl$size)
         r <- decryptGroupsDF(f)
+        runden <- r #read.csv(fileSKR, sep = ";", header = TRUE)
       }
-      runden <- r #read.csv(fileSKR, sep = ";", header = TRUE)
     } else {
       showModal(gruppeErstellen)
       runden <- groupsDF
@@ -867,6 +882,7 @@ shinyServer(function(input, output, session) {
   #'
   #' @examples
   #'##########################################################################################################
+
   setAndDisplay <- function() {
     
     if (!is.null(groupsDF)) {
@@ -963,15 +979,19 @@ shinyServer(function(input, output, session) {
   
   # Tarifdaten werden von den Spielern geändert ...
   observeEvent(input$tarifSpiel, {
-    nr <- getZuletztAktiv()
-    groupsDF[nr, 'GrundtarifSpiel'] <<- input$tarifSpiel
-    tarif[1] <<- input$tarifSpiel
+    if (!is.null(groupsDF)) {
+      nr <- getZuletztAktiv()
+      groupsDF[nr, 'GrundtarifSpiel'] <<- input$tarifSpiel
+      tarif[1] <<- input$tarifSpiel
+    }
   })
   
   observeEvent(input$tarifSolo, {
-    nr <- getZuletztAktiv()
-    groupsDF[nr, 'GrundtarifSolo'] <<- input$tarifSolo
-    tarif[3] <<- input$tarifSolo   
+    if (!is.null(groupsDF)) {
+      nr <- getZuletztAktiv()
+      groupsDF[nr, 'GrundtarifSolo'] <<- input$tarifSolo
+      tarif[3] <<- input$tarifSolo   
+    }
   })
   
   # Spielliste einstellen
@@ -1036,7 +1056,8 @@ shinyServer(function(input, output, session) {
       updateTabelleGrafik()
       
       # Speichern des aktuellen Ergebnisses
-      saveActiveGroup()
+      if (!is.null(groupsDF))
+        saveActiveGroup()
       reset()
       
     } else {
@@ -1049,7 +1070,8 @@ shinyServer(function(input, output, session) {
   observeEvent(input$letztesKorrigieren, {
     # Letzte Tabellenzeile löschen
     spielverlauf <<- spielverlauf[-c(nrow(spielverlauf)),]
-    
+    if (nrow(spielverlauf) == 0)
+      spielverlauf <<- NULL
     # Ausgabe nach Korrektur
     updateTabelleGrafik()
     
@@ -1114,21 +1136,34 @@ shinyServer(function(input, output, session) {
   # Die ausgewählte Gruppe aus der Liste löschen: 2. Stufe - 
   #                                               Löschen einer Gruppe ausführen, wenn der User zustimmt!
   observeEvent(input$modalWLoesch, {
-    
-    # Löschen der Spielverlaufsdaten
-    file.remove(groupsDF[getZuletztAktiv(), 'DateiSpielliste'])
-    #Spielgruppe löschen
-    groupsDF <<- groupsDF[c(-getZuletztAktiv()), ]
-    
-    # Erste Gruppe in der Liste als aktiv setzten
-    setZuletztAktiv(1)
-    # Daten anpassen und anzeigen
-    setAndDisplay()
-    # Den momentanen Stand der Spielgruppen abspeichern
-    saveActiveGroup()
-    
     # Modaldialog schließen
     removeModal()
+      
+    # Löschen der Spielverlaufsdaten
+    if (!is.null(groupsDF) && file.exists(groupsDF[getZuletztAktiv(), 'DateiSpielliste']))
+      file.remove(groupsDF[getZuletztAktiv(), 'DateiSpielliste'])
+    #Spielgruppe löschen
+    groupsDF <<- groupsDF[c(-getZuletztAktiv()), ]
+
+    if (nrow(groupsDF) > 0)  {
+      # Erste Gruppe in der Liste als aktiv setzten
+      setZuletztAktiv(1)
+      # Daten anpassen und anzeigen
+      setAndDisplay()
+      # Den momentanen Stand der Spielgruppen abspeichern
+      saveActiveGroup()
+    } else {
+      # Zurücksetzen von Dataframe und Datei
+      if (file.exists(fileGroups))
+        file.remove(fileGroups)
+      groupsDF <<- NULL
+      # erneute Initialisierung
+      updateSelectInput(session, "gruppeWaehlen", choices = c("A", "B", "C"))
+      spieler <<- NULL
+      renderPlayer()
+      init()
+    }
+    
   }, ignoreInit = TRUE)
   
   # Die ausgewählte Gruppe aus der Liste löschen: 1. Stufe - User fragen, ob die Gruppe gelöscht werden soll
